@@ -1,5 +1,10 @@
 # Backend
 backend/.venv/
 .env
+*.pyc
+__pycache__/
+backend/db.sqlite3
+migrations/
+
 
 # Frontend
