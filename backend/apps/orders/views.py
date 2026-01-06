@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,19 +29,20 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
             
             with transaction.atomic():
+                shipping_cost = Decimal(str(request.data.get('shipping_cost', 0) or 0))
+                tax = Decimal(str(request.data.get('tax', 0) or 0))
+                discount = Decimal(str(request.data.get('discount', 0) or 0))
+
                 # Create order
                 order = Order.objects.create(
                     user=request.user,
                     shipping_address_id=request.data.get('shipping_address'),
                     billing_address_id=request.data.get('billing_address'),
                     subtotal=cart.total_price,
-                    shipping_cost=request.data.get('shipping_cost', 0),
-                    tax=request.data.get('tax', 0),
-                    discount=request.data.get('discount', 0),
-                    total=cart.total_price + 
-                          float(request.data.get('shipping_cost', 0)) +
-                          float(request.data.get('tax', 0)) -
-                          float(request.data.get('discount', 0)),
+                    shipping_cost=shipping_cost,
+                    tax=tax,
+                    discount=discount,
+                    total=cart.total_price + shipping_cost + tax - discount,
                     notes=request.data.get('notes', '')
                 )
                 
