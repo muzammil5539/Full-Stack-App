@@ -1,0 +1,24 @@
+import { getJson } from './http'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
+
+type PaginatedResponse<T> = {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
+export type Payment = {
+  id: number
+  order: number
+  payment_method: string
+  status: string
+  amount: string
+  payment_date: string
+}
+
+export async function listPayments(): Promise<Payment[]> {
+  const data = await getJson<PaginatedResponse<Payment>>(`${API_BASE_URL}/api/v1/payments/`)
+  return data.results
+}
