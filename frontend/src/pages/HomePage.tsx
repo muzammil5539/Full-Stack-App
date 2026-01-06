@@ -2,13 +2,24 @@ import { Link } from 'react-router-dom'
 
 export default function HomePage() {
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>Welcome</h1>
-      <p style={{ margin: 0, maxWidth: 720 }}>
+    <div className="grid gap-4">
+      <h1>Welcome</h1>
+      <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
         This is the starter storefront UI. Browse products, add to cart, and proceed to checkout.
       </p>
-      <div>
-        <Link to="/products">Go to products →</Link>
+      <div className="flex gap-3">
+        <Link
+          to="/products"
+          className="inline-flex h-9 items-center rounded-md bg-sky-600 px-3 text-sm font-medium text-white hover:bg-sky-700"
+        >
+          Browse products
+        </Link>
+        <Link
+          to="/cart"
+          className="inline-flex h-9 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+        >
+          View cart
+        </Link>
       </div>
     </div>
   )

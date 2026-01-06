@@ -34,35 +34,30 @@ export default function WishlistPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>Wishlist</h1>
+    <div className="grid gap-4">
+      <h1>Wishlist</h1>
 
       {loading && <Loading label="Loading wishlist…" />}
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && wishlist && (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="grid gap-3">
           {wishlist.items.length === 0 ? (
-            <p style={{ margin: 0 }}>
-              Empty. <Link to="/products">Browse products</Link>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Empty. <Link to="/products">Browse products</Link>.
             </p>
           ) : (
             wishlist.items.map((it) => (
               <div
                 key={it.id}
-                style={{
-                  border: '1px solid rgba(127,127,127,0.35)',
-                  borderRadius: 8,
-                  padding: 12,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                }}
+                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-950"
               >
-                <div style={{ display: 'grid', gap: 4 }}>
-                  <strong>{it.product_details?.name ?? `Product #${it.product}`}</strong>
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">{it.product_details?.name ?? `Product #${it.product}`}</strong>
                   {it.product_details?.slug && (
-                    <Link to={`/products/${it.product_details.slug}`}>View</Link>
+                    <Link to={`/products/${it.product_details.slug}`} className="text-sm">
+                      View
+                    </Link>
                   )}
                 </div>
                 <button

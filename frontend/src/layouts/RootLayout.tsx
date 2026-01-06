@@ -5,10 +5,12 @@ function NavItem({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
       to={to}
-      style={({ isActive }) => ({
-        textDecoration: 'none',
-        fontWeight: isActive ? 700 : 500,
-      })}
+      className={({ isActive }) =>
+        [
+          'text-sm font-medium transition-colors',
+          isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100',
+        ].join(' ')
+      }
     >
       {label}
     </NavLink>
@@ -19,26 +21,19 @@ export default function RootLayout() {
   const { isAuthenticated, logout } = useAuthToken()
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen flex flex-col">
       <header
-        style={{
-          borderBottom: '1px solid rgba(127,127,127,0.35)',
-          padding: '12px 16px',
-        }}
+        className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/60"
       >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}
-        >
-          <NavItem to="/" label="Store" />
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <NavLink
+            to="/"
+            className="text-base font-semibold tracking-tight text-slate-900 hover:text-slate-900 dark:text-slate-100"
+          >
+            Store
+          </NavLink>
 
-          <nav style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <nav className="flex flex-wrap items-center gap-4">
             <NavItem to="/products" label="Products" />
             <NavItem to="/cart" label="Cart" />
             <NavItem to="/wishlist" label="Wishlist" />
@@ -50,13 +45,7 @@ export default function RootLayout() {
                 <NavItem to="/account" label="Account" />
                 <button
                   onClick={logout}
-                  style={{
-                    border: '1px solid rgba(127,127,127,0.35)',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                  }}
+                  className="h-9"
                 >
                   Logout
                 </button>
@@ -68,20 +57,18 @@ export default function RootLayout() {
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '20px 16px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <main className="flex-1">
+        <div className="mx-auto max-w-6xl px-4 py-6">
           <Outlet />
         </div>
       </main>
 
       <footer
-        style={{
-          borderTop: '1px solid rgba(127,127,127,0.35)',
-          padding: '12px 16px',
-        }}
+        className="border-t border-slate-200 py-3 dark:border-slate-800"
       >
-        <div style={{ maxWidth: 1100, margin: '0 auto', fontSize: 12 }}>
-          API: {import.meta.env.VITE_API_BASE_URL}
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 text-xs text-slate-500 dark:text-slate-400">
+          <div>API: {import.meta.env.VITE_API_BASE_URL}</div>
+          <div>© {new Date().getFullYear()}</div>
         </div>
       </footer>
     </div>

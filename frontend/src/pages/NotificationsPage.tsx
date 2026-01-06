@@ -33,15 +33,15 @@ export default function NotificationsPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>Notifications</h1>
-
-      <div>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1>Notifications</h1>
         <button
           onClick={async () => {
             await markAllNotificationsRead()
             await refresh()
           }}
+          className="h-9"
         >
           Mark all as read
         </button>
@@ -51,26 +51,22 @@ export default function NotificationsPage() {
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="grid gap-3">
           {items.length === 0 ? (
-            <p style={{ margin: 0 }}>No notifications.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">No notifications.</p>
           ) : (
             items.map((n) => (
               <div
                 key={n.id}
-                style={{
-                  border: '1px solid rgba(127,127,127,0.35)',
-                  borderRadius: 8,
-                  padding: 12,
-                  display: 'grid',
-                  gap: 6,
-                }}
+                className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                  <strong>{n.title}</strong>
-                  <span style={{ fontSize: 12, opacity: 0.8 }}>{n.is_read ? 'Read' : 'Unread'}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <strong className="text-sm font-semibold">{n.title}</strong>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {n.is_read ? 'Read' : 'Unread'}
+                  </span>
                 </div>
-                <div style={{ opacity: 0.9 }}>{n.message}</div>
+                <div className="text-sm text-slate-700 dark:text-slate-200">{n.message}</div>
               </div>
             ))
           )}

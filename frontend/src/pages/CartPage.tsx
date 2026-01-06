@@ -34,9 +34,10 @@ export default function CartPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <h1 style={{ margin: 0 }}>Cart</h1>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1>Cart</h1>
+        <div className="flex flex-wrap gap-2">
         <button
           onClick={async () => {
             await clearCart()
@@ -45,39 +46,38 @@ export default function CartPage() {
         >
           Clear cart
         </button>
-        <Link to="/checkout">Continue to checkout →</Link>
+        <Link
+          to="/checkout"
+          className="inline-flex h-9 items-center rounded-md bg-sky-600 px-3 text-sm font-medium text-white hover:bg-sky-700"
+        >
+          Checkout
+        </Link>
+        </div>
       </div>
 
       {loading && <Loading label="Loading cart…" />}
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && cart && (
-        <div style={{ display: 'grid', gap: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <strong>Total items: {cart.total_items}</strong>
-            <strong>Total: {cart.total_price}</strong>
+        <div className="grid gap-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <div className="text-sm font-semibold">Total items: {cart.total_items}</div>
+            <div className="text-sm font-semibold">Total: {cart.total_price}</div>
           </div>
 
           {cart.items.length === 0 ? (
-            <p style={{ margin: 0 }}>
-              Empty. <Link to="/products">Browse products</Link>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Empty. <Link to="/products">Browse products</Link>.
             </p>
           ) : (
             cart.items.map((it) => (
               <div
                 key={it.id}
-                style={{
-                  border: '1px solid rgba(127,127,127,0.35)',
-                  borderRadius: 8,
-                  padding: 12,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                }}
+                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-950"
               >
-                <div style={{ display: 'grid', gap: 4 }}>
-                  <strong>{it.product_details?.name ?? `Product #${it.product}`}</strong>
-                  <div style={{ fontSize: 13, opacity: 0.85 }}>
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">{it.product_details?.name ?? `Product #${it.product}`}</strong>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     Qty: {it.quantity} • Price: {it.price} • Subtotal: {it.subtotal}
                   </div>
                 </div>

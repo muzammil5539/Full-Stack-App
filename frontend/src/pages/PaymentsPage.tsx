@@ -38,33 +38,27 @@ export default function PaymentsPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>Payments</h1>
+    <div className="grid gap-4">
+      <h1>Payments</h1>
 
       {loading && <Loading label="Loading payments…" />}
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="grid gap-3">
           {payments.length === 0 ? (
-            <p style={{ margin: 0 }}>No payments yet.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">No payments yet.</p>
           ) : (
             payments.map((p) => (
               <div
                 key={p.id}
-                style={{
-                  border: '1px solid rgba(127,127,127,0.35)',
-                  borderRadius: 8,
-                  padding: 12,
-                  display: 'grid',
-                  gap: 6,
-                }}
+                className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                  <strong>{p.payment_method}</strong>
-                  <span>{p.amount}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <strong className="text-sm font-semibold">{p.payment_method}</strong>
+                  <span className="text-sm font-semibold">{p.amount}</span>
                 </div>
-                <div style={{ fontSize: 13, opacity: 0.8 }}>Status: {p.status}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Status: {p.status}</div>
               </div>
             ))
           )}

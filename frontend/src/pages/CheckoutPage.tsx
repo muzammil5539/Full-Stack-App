@@ -14,9 +14,9 @@ export default function CheckoutPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <h1 style={{ margin: 0 }}>Checkout</h1>
-      <p style={{ margin: 0 }}>
+    <div className="grid gap-4">
+      <h1>Checkout</h1>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
         Starter page: add shipping address form, payment method selection, and place-order.
       </p>
 
@@ -37,6 +37,7 @@ export default function CheckoutPage() {
             setLoading(false)
           }
         }}
+        className="h-10 bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500"
       >
         {loading ? 'Placing order…' : 'Place order from cart'}
       </button>

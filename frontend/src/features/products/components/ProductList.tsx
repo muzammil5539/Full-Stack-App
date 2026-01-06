@@ -18,30 +18,27 @@ export default function ProductList() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div className="grid gap-3">
       {products.map((p) => (
         <div
           key={p.id}
-          style={{
-            border: '1px solid rgba(127,127,127,0.35)',
-            borderRadius: 8,
-            padding: 12,
-            display: 'grid',
-            gap: 6,
-          }}
+          className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <strong>{p.name}</strong>
-            <span>{p.price}</span>
+          <div className="flex items-start justify-between gap-3">
+            <strong className="text-sm font-semibold">{p.name}</strong>
+            <span className="text-sm font-semibold">{p.price}</span>
           </div>
-          <div style={{ fontSize: 13, opacity: 0.8 }}>Stock: {p.stock}</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link to={`/products/${p.slug}`}>View</Link>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {p.stock}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={`/products/${p.slug}`} className="text-sm">
+              View
+            </Link>
             <button
               disabled={!isAuthenticated}
               onClick={async () => {
                 await addCartItem({ product: p.id, quantity: 1 })
               }}
+              className="h-9"
             >
               Add to cart
             </button>
@@ -50,10 +47,11 @@ export default function ProductList() {
               onClick={async () => {
                 await addWishlistItem(p.id)
               }}
+              className="h-9"
             >
               Wishlist
             </button>
-            {!isAuthenticated && <span style={{ fontSize: 12, opacity: 0.8 }}>Login to buy</span>}
+            {!isAuthenticated && <span className="text-xs text-slate-500 dark:text-slate-400">Login to buy</span>}
           </div>
         </div>
       ))}

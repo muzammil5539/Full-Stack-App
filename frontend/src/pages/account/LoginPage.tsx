@@ -9,9 +9,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   return (
-    <div style={{ display: 'grid', gap: 10, maxWidth: 420 }}>
-      <h1 style={{ margin: 0 }}>Login</h1>
-      <p style={{ margin: 0 }}>
+    <div className="mx-auto grid w-full max-w-md gap-4">
+      <h1>Login</h1>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
         Starter page: connect to backend auth endpoint (JWT/session) and store tokens.
       </p>
 
@@ -36,24 +36,24 @@ export default function LoginPage() {
             setLoading(false)
           }
         }}
-        style={{ display: 'grid', gap: 10 }}
+        className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
       >
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Email</span>
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Email</span>
           <input name="email" type="email" required />
         </label>
 
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Password</span>
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Password</span>
           <input name="password" type="password" required />
         </label>
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="h-10 bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500">
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <div style={{ fontSize: 14 }}>
+      <div className="text-sm text-slate-600 dark:text-slate-300">
         No account? <Link to="/account/register">Register</Link>
       </div>
     </div>

@@ -43,18 +43,18 @@ export default function AccountPage() {
   if (!isAuthenticated) return <AuthRequired />
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>Account</h1>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button
-          onClick={() => {
-            logout()
-          }}
-        >
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1>Account</h1>
+        <button onClick={logout} className="h-9">
           Logout
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-3 text-sm">
         <Link to="/orders">Orders</Link>
         <Link to="/wishlist">Wishlist</Link>
+        <Link to="/notifications">Notifications</Link>
       </div>
 
       {loading && <Loading label="Loading account…" />}
@@ -62,10 +62,10 @@ export default function AccountPage() {
 
       {!loading && !error && (
         <>
-          <section style={{ display: 'grid', gap: 6 }}>
-            <h2 style={{ margin: 0, fontSize: 18 }}>Profile</h2>
+          <section className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <h2>Profile</h2>
             {user ? (
-              <div style={{ display: 'grid', gap: 4 }}>
+              <div className="grid gap-1 text-sm text-slate-700 dark:text-slate-200">
                 <div>Email: {user.email}</div>
                 <div>Username: {user.username}</div>
                 <div>
@@ -74,39 +74,33 @@ export default function AccountPage() {
                 <div>Verified: {String(user.is_verified)}</div>
               </div>
             ) : (
-              <p style={{ margin: 0 }}>No user returned yet.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">No user returned yet.</p>
             )}
           </section>
 
-          <section style={{ display: 'grid', gap: 6 }}>
-            <h2 style={{ margin: 0, fontSize: 18 }}>Addresses</h2>
+          <section className="grid gap-2">
+            <h2>Addresses</h2>
             {addresses.length === 0 ? (
-              <p style={{ margin: 0 }}>No addresses yet.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">No addresses yet.</p>
             ) : (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div className="grid gap-3">
                 {addresses.map((a) => (
                   <div
                     key={a.id}
-                    style={{
-                      border: '1px solid rgba(127,127,127,0.35)',
-                      borderRadius: 8,
-                      padding: 12,
-                      display: 'grid',
-                      gap: 4,
-                    }}
+                    className="grid gap-1 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
                   >
                     <strong>
                       {a.address_type} {a.is_default ? '(default)' : ''}
                     </strong>
-                    <div>{a.full_name}</div>
-                    <div>{a.phone}</div>
-                    <div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200">{a.full_name}</div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200">{a.phone}</div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200">
                       {a.address_line1} {a.address_line2}
                     </div>
-                    <div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200">
                       {a.city}, {a.state} {a.postal_code}
                     </div>
-                    <div>{a.country}</div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200">{a.country}</div>
                   </div>
                 ))}
               </div>
