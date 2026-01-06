@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     'apps.reviews',
     'apps.wishlist',
     'apps.notifications',
+
+    # Admin API (admin-only CRUD)
+    'apps.admin_api',
 ]
 
 MIDDLEWARE = [

@@ -1,12 +1,25 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoryViewSet, BrandViewSet, ProductViewSet
+from .views import (
+    CategoryViewSet,
+    BrandViewSet,
+    ProductViewSet,
+    CategoryAdminViewSet,
+    BrandAdminViewSet,
+    ProductAdminViewSet,
+)
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'brands', BrandViewSet, basename='brand')
 router.register(r'', ProductViewSet, basename='product')
 
+admin_router = DefaultRouter()
+admin_router.register(r'categories', CategoryAdminViewSet, basename='admin-category')
+admin_router.register(r'brands', BrandAdminViewSet, basename='admin-brand')
+admin_router.register(r'products', ProductAdminViewSet, basename='admin-product')
+
 urlpatterns = [
     path('', include(router.urls)),
+    path('admin/', include(admin_router.urls)),
 ]

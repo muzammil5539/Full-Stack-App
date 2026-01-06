@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuthToken } from '../auth/useAuthToken'
+import { useAdminGate } from '../admin/useAdminGate'
 
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
@@ -19,6 +20,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
 
 export default function RootLayout() {
   const { isAuthenticated, logout } = useAuthToken()
+  const adminGate = useAdminGate()
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,6 +44,7 @@ export default function RootLayout() {
             <NavItem to="/payments" label="Payments" />
             {isAuthenticated ? (
               <>
+                {adminGate.status === 'allowed' ? <NavItem to="/admin" label="Admin" /> : null}
                 <NavItem to="/account" label="Account" />
                 <button
                   onClick={logout}

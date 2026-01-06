@@ -21,6 +21,9 @@ urlpatterns = [
     path('api/v1/reviews/', include('apps.reviews.urls')),
     path('api/v1/wishlist/', include('apps.wishlist.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
+
+    # Admin-only CRUD API
+    path('api/v1/admin/', include('apps.admin_api.urls')),
 ]
 
 # Serve media files in development

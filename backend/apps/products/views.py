@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, permissions
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Brand, Product, ProductImage, ProductVariant
 from .serializers import (
@@ -28,3 +28,22 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name', 'description', 'sku']
     ordering_fields = ['price', 'created_at', 'name']
     ordering = ['-created_at']
+
+
+class CategoryAdminViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class BrandAdminViewSet(viewsets.ModelViewSet):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class ProductAdminViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all().select_related('category', 'brand')
+    serializer_class = ProductSerializer
+    permission_classes = [permissions.IsAdminUser]
+

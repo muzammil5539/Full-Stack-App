@@ -1,15 +1,38 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { registerWithToken } from '../../api/auth'
+import ErrorMessage from '../../shared/ui/ErrorMessage'
 
 export default function RegisterPage() {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   return (
     <div className="mx-auto grid w-full max-w-md gap-4">
       <h1>Register</h1>
-      <p className="text-sm text-slate-600 dark:text-slate-300">Starter page: connect to backend registration endpoint.</p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">Create a new account.</p>
+
+      {error && <ErrorMessage message={error} />}
 
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault()
-          alert('TODO: register flow')
+          const form = new FormData(e.currentTarget)
+          const email = String(form.get('email') ?? '')
+          const password = String(form.get('password') ?? '')
+
+          try {
+            setLoading(true)
+            setError(null)
+            await registerWithToken(email, password)
+            navigate('/account', { replace: true })
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Registration failed'
+            setError(message)
+          } finally {
+            setLoading(false)
+          }
         }}
         className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
       >
@@ -23,8 +46,12 @@ export default function RegisterPage() {
           <input name="password" type="password" required />
         </label>
 
-        <button type="submit" className="h-10 bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500">
-          Create account
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-10 bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500"
+        >
+          {loading ? 'Creating…' : 'Create account'}
         </button>
       </form>
 

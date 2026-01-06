@@ -18,6 +18,8 @@ export type User = {
   phone: string
   avatar: string | null
   is_verified: boolean
+  is_staff: boolean
+  is_superuser: boolean
 }
 
 export type Address = {
