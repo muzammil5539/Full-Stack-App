@@ -1,0 +1,21 @@
+"""
+Utility functions for the e-commerce application.
+"""
+
+import random
+import string
+
+
+def generate_order_number():
+    """Generate a unique order number."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
+
+def calculate_discount(original_price, discount_percentage):
+    """Calculate discounted price."""
+    return original_price * (1 - discount_percentage / 100)
+
+
+def format_currency(amount, currency='$'):
+    """Format amount as currency."""
+    return f"{currency}{amount:.2f}"

@@ -1,0 +1,26 @@
+"""
+Custom validators for the e-commerce application.
+"""
+
+from django.core.exceptions import ValidationError
+
+
+def validate_phone_number(value):
+    """Validate phone number format."""
+    import re
+    phone_regex = re.compile(r'^\+?1?\d{9,15}$')
+    if not phone_regex.match(value):
+        raise ValidationError('Invalid phone number format.')
+
+
+def validate_positive_number(value):
+    """Validate that a number is positive."""
+    if value < 0:
+        raise ValidationError('Value must be positive.')
+
+
+def validate_image_size(image):
+    """Validate image file size (max 5MB)."""
+    max_size = 5 * 1024 * 1024  # 5MB
+    if image.size > max_size:
+        raise ValidationError('Image file size must be less than 5MB.')

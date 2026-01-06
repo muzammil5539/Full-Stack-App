@@ -1,0 +1,90 @@
+from django.db import models
+from django.conf import settings
+from apps.products.models import Product, ProductVariant
+from apps.accounts.models import Address
+from utils.models import TimeStampedModel
+import uuid
+
+
+class Order(TimeStampedModel):
+    """Order model."""
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('processing', 'Processing'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+        ('refunded', 'Refunded'),
+    )
+    
+    order_number = models.CharField(max_length=100, unique=True, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Shipping information
+    shipping_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, related_name='shipping_orders')
+    billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, related_name='billing_orders')
+    
+    # Pricing
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Additional info
+    notes = models.TextField(blank=True)
+    tracking_number = models.CharField(max_length=255, blank=True)
+    
+    class Meta:
+        db_table = 'orders'
+        verbose_name = 'Order'
+        verbose_name_plural = 'Orders'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Order {self.order_number}"
+    
+    def save(self, *args, **kwargs):
+        if not self.order_number:
+            self.order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+
+class OrderItem(TimeStampedModel):
+    """Order item model."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        db_table = 'order_items'
+        verbose_name = 'Order Item'
+        verbose_name_plural = 'Order Items'
+    
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name}"
+    
+    def save(self, *args, **kwargs):
+        self.subtotal = self.price * self.quantity
+        super().save(*args, **kwargs)
+
+
+class OrderStatusHistory(TimeStampedModel):
+    """Order status history model."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_history')
+    status = models.CharField(max_length=20)
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        db_table = 'order_status_history'
+        verbose_name = 'Order Status History'
+        verbose_name_plural = 'Order Status Histories'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.order.order_number} - {self.status}"
