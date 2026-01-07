@@ -104,7 +104,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Implement real product detail screen (fetch by slug, show images/description/variants/attributes).
 - [x] Add-to-cart from product detail (including variant selection if variants exist).
 - [x] Reviews list UI on product detail.
-- [ ] Review submission UI (rating + title + comment) for authenticated users.
+- [x] Review submission UI (rating + title + comment) for authenticated users.
 - [ ] Review edit/delete UI for the user’s own review (if backend supports it).
 
 **Checkout**
