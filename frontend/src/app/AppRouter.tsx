@@ -5,6 +5,7 @@ import CheckoutPage from '../pages/CheckoutPage'
 import HomePage from '../pages/HomePage'
 import NotificationsPage from '../pages/NotificationsPage'
 import NotFoundPage from '../pages/NotFoundPage'
+import OrderDetailPage from '../pages/OrderDetailPage'
 import OrdersPage from '../pages/OrdersPage'
 import PaymentsPage from '../pages/PaymentsPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
@@ -29,6 +30,7 @@ export default function AppRouter() {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="wishlist" element={<WishlistPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="payments" element={<PaymentsPage />} />

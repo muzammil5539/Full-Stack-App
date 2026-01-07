@@ -94,7 +94,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Order confirmation screen (success state with order number/details).
 
 **Orders**
-- [ ] Order detail page (items, totals, addresses, status history).
+- [x] Order detail page (items, totals, addresses, status history).
 - [ ] Cancel order action in UI (wire to `POST /api/v1/orders/{id}/cancel/`) with proper state updates.
 
 **Cart**

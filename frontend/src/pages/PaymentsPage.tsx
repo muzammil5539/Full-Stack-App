@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { listOrders, type Order } from '../api/orders'
 import { listPayments, type Payment } from '../api/payments'
 import { useAuthToken } from '../auth/useAuthToken'
 import AuthRequired from '../shared/ui/AuthRequired'
@@ -8,8 +10,15 @@ import Loading from '../shared/ui/Loading'
 export default function PaymentsPage() {
   const { isAuthenticated } = useAuthToken()
   const [payments, setPayments] = useState<Payment[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const orderNumberById = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const o of orders) map.set(o.id, o.order_number)
+    return map
+  }, [orders])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -19,8 +28,11 @@ export default function PaymentsPage() {
       try {
         setLoading(true)
         setError(null)
-        const data = await listPayments()
-        if (!cancelled) setPayments(data)
+        const [pay, ord] = await Promise.all([listPayments(), listOrders()])
+        if (!cancelled) {
+          setPayments(pay)
+          setOrders(ord)
+        }
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Failed to load payments'
         if (!cancelled) setError(message)
@@ -59,6 +71,23 @@ export default function PaymentsPage() {
                   <span className="text-sm font-semibold">{p.amount}</span>
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Status: {p.status}</div>
+
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <span>
+                    Order:{' '}
+                    <Link
+                      to={`/orders/${p.order}`}
+                      className="font-medium text-sky-700 hover:underline dark:text-sky-300"
+                    >
+                      {orderNumberById.get(p.order) ?? `Order #${p.order}`}
+                    </Link>
+                  </span>
+                  {p.transaction_id ? (
+                    <span>
+                      • Transaction: <span className="font-medium">{p.transaction_id}</span>
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ))
           )}

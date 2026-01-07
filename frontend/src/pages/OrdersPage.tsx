@@ -64,7 +64,12 @@ export default function OrdersPage() {
                 className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <strong className="text-sm font-semibold">{o.order_number}</strong>
+                  <Link
+                    to={`/orders/${o.id}`}
+                    className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-300"
+                  >
+                    {o.order_number}
+                  </Link>
                   <span className="text-sm font-semibold">{o.total}</span>
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Status: {o.status}</div>

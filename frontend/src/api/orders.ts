@@ -56,6 +56,10 @@ export async function listOrders(): Promise<Order[]> {
   return data.results
 }
 
+export async function getOrderById(id: number): Promise<OrderDetail> {
+  return getJson<OrderDetail>(`${API_BASE_URL}/api/v1/orders/${id}/`)
+}
+
 export async function createOrderFromCart(params: {
   item_ids?: number[]
   shipping_address?: number
