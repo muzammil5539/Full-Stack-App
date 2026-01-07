@@ -10,7 +10,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 
 - [x] Backend: validate money fields in checkout (non-negative values; prevent invalid totals).
 - [x] Backend: add cart quantity update endpoint (set/increment/decrement) and align UI.
-- [ ] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
+- [x] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
 - [ ] Frontend: implement real checkout form (addresses + totals + confirmation).
 
 ---
@@ -83,9 +83,9 @@ Use this short list for day-to-day progress. The full checklist continues below.
 ### FRs (Functional Requirements)
 
 **Product Detail**
-- [ ] Implement real product detail screen (fetch by slug, show images/description/variants/attributes).
-- [ ] Add-to-cart from product detail (including variant selection if variants exist).
-- [ ] Reviews UI on product detail (list reviews, create/update review).
+- [x] Implement real product detail screen (fetch by slug, show images/description/variants/attributes).
+- [x] Add-to-cart from product detail (including variant selection if variants exist).
+- [x] Reviews UI on product detail (list reviews, create/update review).
 
 **Checkout**
 - [ ] Replace “starter” checkout with a real checkout form (shipping address selection/entry, billing address, notes).
@@ -98,7 +98,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Cancel order action in UI (wire to `POST /api/v1/orders/{id}/cancel/`) with proper state updates.
 
 **Cart**
-- [ ] Quantity editing UI (increase/decrease/set) and sync with backend endpoints.
+- [x] Quantity editing UI (increase/decrease/set) and sync with backend endpoints.
 - [ ] Selected subtotal display (for selected items) and clearer messaging when selected items are removed/changed.
 
 **Account / Addresses**
