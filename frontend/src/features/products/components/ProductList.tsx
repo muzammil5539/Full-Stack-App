@@ -6,6 +6,11 @@ import ErrorMessage from '../../../shared/ui/ErrorMessage'
 import Loading from '../../../shared/ui/Loading'
 import { useProducts } from '../hooks/useProducts'
 
+const buttonBase =
+  'inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800'
+
+const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
+
 export default function ProductList() {
   const { products, loading, error } = useProducts()
   const { isAuthenticated } = useAuthToken()
@@ -14,7 +19,7 @@ export default function ProductList() {
   if (error) return <ErrorMessage message={error} />
 
   if (products.length === 0) {
-    return <p style={{ margin: 0 }}>No products yet.</p>
+    return <p className="m-0 text-sm text-slate-600 dark:text-slate-300">No products yet.</p>
   }
 
   return (
@@ -30,7 +35,7 @@ export default function ProductList() {
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {p.stock}</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/products/${p.slug}`} className="text-sm">
+            <Link to={`/products/${p.slug}`} className={[linkBase, 'text-sm'].join(' ')}>
               View
             </Link>
             <button
@@ -38,7 +43,7 @@ export default function ProductList() {
               onClick={async () => {
                 await addCartItem({ product: p.id, quantity: 1 })
               }}
-              className="h-9"
+              className={[buttonBase, 'h-9'].join(' ')}
             >
               Add to cart
             </button>
@@ -47,7 +52,7 @@ export default function ProductList() {
               onClick={async () => {
                 await addWishlistItem(p.id)
               }}
-              className="h-9"
+              className={[buttonBase, 'h-9'].join(' ')}
             >
               Wishlist
             </button>

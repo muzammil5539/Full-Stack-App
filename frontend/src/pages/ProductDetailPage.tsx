@@ -5,7 +5,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="grid gap-3">
-      <h1>Product</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Product</h1>
       <div className="rounded-md border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="text-slate-500 dark:text-slate-400">Slug</div>
         <div className="font-medium">{slug}</div>

@@ -15,7 +15,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="grid gap-4">
-      <h1>Checkout</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Checkout</h1>
       <p className="text-sm text-slate-600 dark:text-slate-300">
         Starter page: add shipping address form, payment method selection, and place-order.
       </p>
@@ -37,7 +37,7 @@ export default function CheckoutPage() {
             setLoading(false)
           }
         }}
-        className="h-10 bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500"
+        className="inline-flex h-10 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
       >
         {loading ? 'Placing order…' : 'Place order from cart'}
       </button>

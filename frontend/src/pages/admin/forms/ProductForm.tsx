@@ -20,6 +20,11 @@ type Product = {
   is_featured: boolean
 }
 
+const inputBase =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'
+
+const checkboxBase = 'h-4 w-4 rounded border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950'
+
 function slugifyLite(input: string): string {
   return input
     .trim()
@@ -35,22 +40,25 @@ export default function ProductForm({
   onDone,
 }: {
   apiPath: string
-  initial?: any
+  initial?: unknown
   onDone: () => void
 }) {
+  const initialRecord = (initial && typeof initial === 'object' && !Array.isArray(initial)) ? (initial as Record<string, unknown>) : undefined
+  const isEditing = typeof initialRecord?.id === 'number'
+
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
 
-  const [name, setName] = useState(String(initial?.name ?? ''))
-  const [slug, setSlug] = useState(String(initial?.slug ?? ''))
-  const [sku, setSku] = useState(String(initial?.sku ?? ''))
-  const [price, setPrice] = useState(String(initial?.price ?? ''))
-  const [stock, setStock] = useState(String(initial?.stock ?? '0'))
-  const [description, setDescription] = useState(String(initial?.description ?? ''))
-  const [categoryId, setCategoryId] = useState<number | ''>(initial?.category ?? '')
-  const [brandId, setBrandId] = useState<number | ''>(initial?.brand ?? '')
-  const [isActive, setIsActive] = useState(Boolean(initial?.is_active ?? true))
-  const [isFeatured, setIsFeatured] = useState(Boolean(initial?.is_featured ?? false))
+  const [name, setName] = useState(String(initialRecord?.name ?? ''))
+  const [slug, setSlug] = useState(String(initialRecord?.slug ?? ''))
+  const [sku, setSku] = useState(String(initialRecord?.sku ?? ''))
+  const [price, setPrice] = useState(String(initialRecord?.price ?? ''))
+  const [stock, setStock] = useState(String(initialRecord?.stock ?? '0'))
+  const [description, setDescription] = useState(String(initialRecord?.description ?? ''))
+  const [categoryId, setCategoryId] = useState<number | ''>((initialRecord?.category as number | '') ?? '')
+  const [brandId, setBrandId] = useState<number | ''>((initialRecord?.brand as number | '') ?? '')
+  const [isActive, setIsActive] = useState(Boolean(initialRecord?.is_active ?? true))
+  const [isFeatured, setIsFeatured] = useState(Boolean(initialRecord?.is_featured ?? false))
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,8 +119,9 @@ export default function ProductForm({
             is_featured: isFeatured,
           }
 
-          if (initial?.id) {
-            await adminPatch(apiPath, initial.id, payload)
+          const id = initialRecord?.id
+          if (typeof id === 'number') {
+            await adminPatch(apiPath, id, payload)
           } else {
             await adminCreate(apiPath, payload)
           }
@@ -130,29 +139,29 @@ export default function ProductForm({
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} required />
+        <input value={name} onChange={(e) => setName(e.target.value)} required className={inputBase} />
       </div>
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Slug (optional)</label>
-        <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={slugifyLite(name)} />
+        <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={slugifyLite(name)} className={inputBase} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">SKU</label>
-          <input value={sku} onChange={(e) => setSku(e.target.value)} required />
+          <input value={sku} onChange={(e) => setSku(e.target.value)} required className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Price</label>
-          <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="19.99" required />
+          <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="19.99" required className={inputBase} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Stock</label>
-          <input value={stock} onChange={(e) => setStock(e.target.value)} />
+          <input value={stock} onChange={(e) => setStock(e.target.value)} className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Category</label>
@@ -200,11 +209,11 @@ export default function ProductForm({
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className={checkboxBase} />
           Active
         </label>
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
+          <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className={checkboxBase} />
           Featured
         </label>
       </div>
@@ -212,9 +221,9 @@ export default function ProductForm({
       <button
         type="submit"
         disabled={loading || !canSubmit}
-        className="h-10 bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60"
+        className="inline-flex h-10 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
       >
-        {loading ? 'Saving…' : initial?.id ? 'Save product' : 'Create product'}
+        {loading ? 'Saving…' : isEditing ? 'Save product' : 'Create product'}
       </button>
     </form>
   )

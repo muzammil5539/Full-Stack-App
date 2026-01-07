@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 export default function HomePage() {
   return (
     <div className="grid gap-4">
-      <h1>Welcome</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
       <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
         This is the starter storefront UI. Browse products, add to cart, and proceed to checkout.
       </p>

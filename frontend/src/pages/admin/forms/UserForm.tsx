@@ -12,24 +12,32 @@ type UserPayload = {
   password?: string
 }
 
+const inputBase =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'
+
+const checkboxBase = 'h-4 w-4 rounded border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950'
+
 export default function UserForm({
   apiPath,
   initial,
   onDone,
 }: {
   apiPath: string
-  initial?: any
+  initial?: unknown
   onDone: () => void
 }) {
-  const [email, setEmail] = useState(String(initial?.email ?? ''))
-  const [username, setUsername] = useState(String(initial?.username ?? ''))
-  const [firstName, setFirstName] = useState(String(initial?.first_name ?? ''))
-  const [lastName, setLastName] = useState(String(initial?.last_name ?? ''))
+  const initialRecord = (initial && typeof initial === 'object' && !Array.isArray(initial)) ? (initial as Record<string, unknown>) : undefined
+  const isEditing = typeof initialRecord?.id === 'number'
+
+  const [email, setEmail] = useState(String(initialRecord?.email ?? ''))
+  const [username, setUsername] = useState(String(initialRecord?.username ?? ''))
+  const [firstName, setFirstName] = useState(String(initialRecord?.first_name ?? ''))
+  const [lastName, setLastName] = useState(String(initialRecord?.last_name ?? ''))
   const [password, setPassword] = useState('')
 
-  const [isActive, setIsActive] = useState(Boolean(initial?.is_active ?? true))
-  const [isStaff, setIsStaff] = useState(Boolean(initial?.is_staff ?? false))
-  const [isSuperuser, setIsSuperuser] = useState(Boolean(initial?.is_superuser ?? false))
+  const [isActive, setIsActive] = useState(Boolean(initialRecord?.is_active ?? true))
+  const [isStaff, setIsStaff] = useState(Boolean(initialRecord?.is_staff ?? false))
+  const [isSuperuser, setIsSuperuser] = useState(Boolean(initialRecord?.is_superuser ?? false))
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,8 +67,9 @@ export default function UserForm({
           // Only send password if provided
           if (password.trim().length > 0) payload.password = password
 
-          if (initial?.id) {
-            await adminPatch(apiPath, initial.id, payload)
+          const id = initialRecord?.id
+          if (typeof id === 'number') {
+            await adminPatch(apiPath, id, payload)
           } else {
             await adminCreate(apiPath, payload)
           }
@@ -78,41 +87,41 @@ export default function UserForm({
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required className={inputBase} />
       </div>
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Username</label>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+        <input value={username} onChange={(e) => setUsername(e.target.value)} required className={inputBase} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">First name</label>
-          <input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Last name</label>
-          <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputBase} />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Password {initial?.id ? '(optional)' : ''}</label>
-        <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder={initial?.id ? 'Leave blank to keep unchanged' : ''} />
+        <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Password {isEditing ? '(optional)' : ''}</label>
+        <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder={isEditing ? 'Leave blank to keep unchanged' : ''} className={inputBase} />
       </div>
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className={checkboxBase} />
           Active
         </label>
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={isStaff} onChange={(e) => setIsStaff(e.target.checked)} />
+          <input type="checkbox" checked={isStaff} onChange={(e) => setIsStaff(e.target.checked)} className={checkboxBase} />
           Staff
         </label>
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={isSuperuser} onChange={(e) => setIsSuperuser(e.target.checked)} />
+          <input type="checkbox" checked={isSuperuser} onChange={(e) => setIsSuperuser(e.target.checked)} className={checkboxBase} />
           Superuser
         </label>
       </div>
@@ -120,9 +129,9 @@ export default function UserForm({
       <button
         type="submit"
         disabled={loading || !canSubmit}
-        className="h-10 bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60"
+        className="inline-flex h-10 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
       >
-        {loading ? 'Saving…' : initial?.id ? 'Save user' : 'Create user'}
+        {loading ? 'Saving…' : typeof initialRecord?.id === 'number' ? 'Save user' : 'Create user'}
       </button>
     </form>
   )

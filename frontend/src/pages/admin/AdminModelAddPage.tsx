@@ -5,6 +5,8 @@ import AdminRequired from '../../admin/AdminRequired'
 import { findAdminResource } from '../../admin/resources'
 import AutoAdminForm from './forms/AutoAdminForm'
 
+const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
+
 export default function AdminModelAddPage() {
   const navigate = useNavigate()
   const params = useParams()
@@ -18,13 +20,15 @@ export default function AdminModelAddPage() {
       <div className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1>{resource ? `${resource.title} / Add` : 'Admin / Add'}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{resource ? `${resource.title} / Add` : 'Admin / Add'}</h1>
             <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Path: <span className="font-mono">/admin/{app}/{model}/add/</span>
             </div>
           </div>
           <div className="flex gap-3">
-            <Link to={`/admin/${app}/${model}/`} className="text-sm">Back to change list</Link>
+            <Link to={`/admin/${app}/${model}/`} className={[linkBase, 'text-sm'].join(' ')}>
+              Back to change list
+            </Link>
           </div>
         </div>
 

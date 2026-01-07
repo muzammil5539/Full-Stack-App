@@ -5,6 +5,8 @@ import { findAdminResource } from '../../admin/resources'
 import ErrorMessage from '../../shared/ui/ErrorMessage'
 import AutoAdminForm from './forms/AutoAdminForm'
 
+const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
+
 export default function AdminModelEditPage() {
   const params = useParams()
   const app = String(params.app ?? '')
@@ -18,12 +20,14 @@ export default function AdminModelEditPage() {
       <div className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1>{resource ? `${resource.title} / Change` : 'Admin / Change'}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{resource ? `${resource.title} / Change` : 'Admin / Change'}</h1>
             <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Path: <span className="font-mono">/admin/{app}/{model}/{id}/change/</span>
             </div>
           </div>
-          <Link to={`/admin/${app}/${model}/`} className="text-sm">Back to list</Link>
+          <Link to={`/admin/${app}/${model}/`} className={[linkBase, 'text-sm'].join(' ')}>
+            Back to list
+          </Link>
         </div>
 
         {!resource ? (

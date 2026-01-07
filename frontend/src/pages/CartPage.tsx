@@ -6,6 +6,11 @@ import AuthRequired from '../shared/ui/AuthRequired'
 import ErrorMessage from '../shared/ui/ErrorMessage'
 import Loading from '../shared/ui/Loading'
 
+const buttonBase =
+  'inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800'
+
+const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
+
 export default function CartPage() {
   const { isAuthenticated } = useAuthToken()
   const [cart, setCart] = useState<Cart | null>(null)
@@ -36,13 +41,14 @@ export default function CartPage() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1>Cart</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Cart</h1>
         <div className="flex flex-wrap gap-2">
         <button
           onClick={async () => {
             await clearCart()
             await refresh()
           }}
+          className={[buttonBase, 'h-9'].join(' ')}
         >
           Clear cart
         </button>
@@ -67,7 +73,11 @@ export default function CartPage() {
 
           {cart.items.length === 0 ? (
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Empty. <Link to="/products">Browse products</Link>.
+              Empty.{' '}
+              <Link to="/products" className={linkBase}>
+                Browse products
+              </Link>
+              .
             </p>
           ) : (
             cart.items.map((it) => (
@@ -86,6 +96,7 @@ export default function CartPage() {
                     await removeCartItem(it.id)
                     await refresh()
                   }}
+                  className={[buttonBase, 'h-9'].join(' ')}
                 >
                   Remove
                 </button>

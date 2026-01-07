@@ -41,7 +41,7 @@ export default function OrdersPage() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1>Orders</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
         <Link
           to="/checkout"
           className="inline-flex h-9 items-center rounded-md bg-sky-600 px-3 text-sm font-medium text-white hover:bg-sky-700"

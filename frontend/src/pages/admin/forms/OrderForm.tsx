@@ -25,28 +25,33 @@ const STATUSES: Array<{ value: string; label: string }> = [
   { value: 'refunded', label: 'Refunded' },
 ]
 
+const inputBase =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'
+
 export default function OrderForm({
   apiPath,
   initial,
   onDone,
 }: {
   apiPath: string
-  initial?: any
+  initial?: unknown
   onDone: () => void
 }) {
-  const [userId, setUserId] = useState(String(initial?.user ?? ''))
-  const [status, setStatus] = useState(String(initial?.status ?? 'pending'))
-  const [shippingAddress, setShippingAddress] = useState(String(initial?.shipping_address ?? ''))
-  const [billingAddress, setBillingAddress] = useState(String(initial?.billing_address ?? ''))
+  const initialRecord = (initial && typeof initial === 'object' && !Array.isArray(initial)) ? (initial as Record<string, unknown>) : undefined
 
-  const [subtotal, setSubtotal] = useState(String(initial?.subtotal ?? '0'))
-  const [shippingCost, setShippingCost] = useState(String(initial?.shipping_cost ?? '0'))
-  const [tax, setTax] = useState(String(initial?.tax ?? '0'))
-  const [discount, setDiscount] = useState(String(initial?.discount ?? '0'))
-  const [total, setTotal] = useState(String(initial?.total ?? '0'))
+  const [userId, setUserId] = useState(String(initialRecord?.user ?? ''))
+  const [status, setStatus] = useState(String(initialRecord?.status ?? 'pending'))
+  const [shippingAddress, setShippingAddress] = useState(String(initialRecord?.shipping_address ?? ''))
+  const [billingAddress, setBillingAddress] = useState(String(initialRecord?.billing_address ?? ''))
 
-  const [notes, setNotes] = useState(String(initial?.notes ?? ''))
-  const [trackingNumber, setTrackingNumber] = useState(String(initial?.tracking_number ?? ''))
+  const [subtotal, setSubtotal] = useState(String(initialRecord?.subtotal ?? '0'))
+  const [shippingCost, setShippingCost] = useState(String(initialRecord?.shipping_cost ?? '0'))
+  const [tax, setTax] = useState(String(initialRecord?.tax ?? '0'))
+  const [discount, setDiscount] = useState(String(initialRecord?.discount ?? '0'))
+  const [total, setTotal] = useState(String(initialRecord?.total ?? '0'))
+
+  const [notes, setNotes] = useState(String(initialRecord?.notes ?? ''))
+  const [trackingNumber, setTrackingNumber] = useState(String(initialRecord?.tracking_number ?? ''))
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,8 +84,9 @@ export default function OrderForm({
             tracking_number: trackingNumber,
           }
 
-          if (initial?.id) {
-            await adminPatch(apiPath, initial.id, payload)
+          const id = initialRecord?.id
+          if (typeof id === 'number') {
+            await adminPatch(apiPath, id, payload)
           } else {
             await adminCreate(apiPath, payload)
           }
@@ -99,7 +105,7 @@ export default function OrderForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">User ID</label>
-          <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. 1" required />
+          <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="e.g. 1" required className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Status</label>
@@ -120,37 +126,37 @@ export default function OrderForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Shipping Address ID (optional)</label>
-          <input value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} placeholder="e.g. 10" />
+          <input value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} placeholder="e.g. 10" className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Billing Address ID (optional)</label>
-          <input value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="e.g. 11" />
+          <input value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="e.g. 11" className={inputBase} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Subtotal</label>
-          <input value={subtotal} onChange={(e) => setSubtotal(e.target.value)} />
+          <input value={subtotal} onChange={(e) => setSubtotal(e.target.value)} className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Shipping Cost</label>
-          <input value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} />
+          <input value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} className={inputBase} />
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Tax</label>
-          <input value={tax} onChange={(e) => setTax(e.target.value)} />
+          <input value={tax} onChange={(e) => setTax(e.target.value)} className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Discount</label>
-          <input value={discount} onChange={(e) => setDiscount(e.target.value)} />
+          <input value={discount} onChange={(e) => setDiscount(e.target.value)} className={inputBase} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Total</label>
-          <input value={total} onChange={(e) => setTotal(e.target.value)} />
+          <input value={total} onChange={(e) => setTotal(e.target.value)} className={inputBase} />
         </div>
       </div>
 
@@ -165,15 +171,15 @@ export default function OrderForm({
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Tracking Number</label>
-        <input value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
+        <input value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} className={inputBase} />
       </div>
 
       <button
         type="submit"
         disabled={loading || !canSubmit}
-        className="h-10 bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60"
+        className="inline-flex h-10 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
       >
-        {loading ? 'Saving…' : initial?.id ? 'Save order' : 'Create order'}
+        {loading ? 'Saving…' : typeof initialRecord?.id === 'number' ? 'Save order' : 'Create order'}
       </button>
     </form>
   )

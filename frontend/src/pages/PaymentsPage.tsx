@@ -39,7 +39,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="grid gap-4">
-      <h1>Payments</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
 
       {loading && <Loading label="Loading payments…" />}
       {error && <ErrorMessage message={error} />}

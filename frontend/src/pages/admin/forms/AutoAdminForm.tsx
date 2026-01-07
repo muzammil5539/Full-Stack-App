@@ -7,6 +7,13 @@ import {
   adminPatchMultipart,
 } from '../../../api/adminCrud'
 
+const controlBase =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'
+
+const checkboxBase = 'h-4 w-4 rounded border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950'
+
+const fileBase = 'w-full text-sm text-slate-900 dark:text-slate-100'
+
 type Choice = {
   value: unknown
   display_name: string
@@ -44,6 +51,12 @@ type Props = {
   mode: 'create' | 'edit'
   id?: string
   onDone: () => void
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null
+  if (Array.isArray(value)) return null
+  return value as Record<string, unknown>
 }
 
 function toLabel(key: string): string {
@@ -140,8 +153,8 @@ function coerceOutgoing(field: DrfField, raw: FieldValue): unknown {
   return s
 }
 
-function toInitialValue(field: DrfField, existing: any, key: string): FieldValue {
-  const fromExisting = existing?.[key]
+function toInitialValue(field: DrfField, existing: Record<string, unknown> | null, key: string): FieldValue {
+  const fromExisting = existing ? existing[key] : undefined
 
   if (isFileField(field)) {
     return null
@@ -174,7 +187,7 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
   const [fields, setFields] = useState<Record<string, DrfField> | null>(null)
   const [values, setValues] = useState<Record<string, FieldValue>>({})
 
-  const [existing, setExisting] = useState<any | null>(null)
+  const [existing, setExisting] = useState<Record<string, unknown> | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -190,7 +203,7 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
           throw new Error('This endpoint did not expose field metadata (OPTIONS.actions).')
         }
 
-        let loadedExisting: any = null
+        let loadedExisting: Record<string, unknown> | null = null
         if (mode === 'edit') {
           if (!id) throw new Error('Missing id')
           const url = `${import.meta.env.VITE_API_BASE_URL as string}${apiPath}${id}/`
@@ -204,26 +217,24 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
             const text = await response.text().catch(() => '')
             throw new Error(text || `Failed to load (${response.status})`)
           }
-          loadedExisting = await response.json()
+          loadedExisting = asRecord(await response.json())
         }
 
-        if (cancelled) return
-
-        setExisting(loadedExisting)
-        setFields(actionFields)
+        if (!cancelled) {
+          setExisting(loadedExisting)
+          setFields(actionFields)
+        }
 
         const nextValues: Record<string, FieldValue> = {}
         for (const [key, field] of Object.entries(actionFields)) {
           if (field.read_only) continue
           nextValues[key] = toInitialValue(field, loadedExisting, key)
         }
-        setValues(nextValues)
+        if (!cancelled) setValues(nextValues)
       } catch (e) {
-        if (cancelled) return
-        setError(e instanceof Error ? e.message : 'Failed to load form schema.')
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load form schema.')
       } finally {
-        if (cancelled) return
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
@@ -258,7 +269,7 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
 
   return (
     <form
-      className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
+      className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
       onSubmit={async (e) => {
         e.preventDefault()
 
@@ -327,14 +338,25 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
         }
       }}
     >
+      <div className="grid gap-3 md:grid-cols-2">
       {fieldEntries.map(([key, field]) => {
         const label = field.label || toLabel(key)
         const help = field.help_text
         const required = Boolean(field.required)
         const value = values[key]
 
+        const t = normalizeFieldType(field)
+        const isLongText = t === 'text' || key.includes('description') || key.includes('notes')
+        const wantsFullWidth =
+          isLongText ||
+          isFileField(field) ||
+          (isMultiChoiceField(field) && Array.isArray(field.choices)) ||
+          isBooleanField(field)
+
+        const wrapperClass = wantsFullWidth ? 'md:col-span-2' : ''
+
         const common = (
-          <div key={key} className="grid gap-1">
+          <div className="grid gap-1">
             <div className="flex items-baseline justify-between gap-3">
               <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 {label}
@@ -348,11 +370,11 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
 
         if (isBooleanField(field)) {
           return (
-            <div key={key} className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+            <div key={key} className={["rounded-md border border-slate-200 p-3 dark:border-slate-800", wrapperClass].join(' ')}>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="h-4 w-4"
+                  className={checkboxBase}
                   checked={Boolean(value)}
                   onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.checked }))}
                 />
@@ -365,11 +387,12 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
 
         if (isFileField(field)) {
           return (
-            <div key={key} className="grid gap-1">
+            <div key={key} className={["grid gap-1", wrapperClass].join(' ')}>
               {common}
               <input
                 type="file"
                 required={mode === 'create' && required}
+                className={fileBase}
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null
                   setValues((v) => ({ ...v, [key]: f }))
@@ -385,11 +408,11 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
         if (isMultiChoiceField(field) && Array.isArray(field.choices)) {
           const selected = Array.isArray(value) ? value : []
           return (
-            <div key={key} className="grid gap-1">
+            <div key={key} className={["grid gap-1", wrapperClass].join(' ')}>
               {common}
               <select
                 multiple
-                className="min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                className={[controlBase, 'min-h-[140px] text-sm'].join(' ')}
                 value={selected}
                 onChange={(e) => {
                   const next = Array.from(e.target.selectedOptions).map((o) => o.value)
@@ -408,10 +431,10 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
 
         if (isChoiceField(field) && Array.isArray(field.choices)) {
           return (
-            <div key={key} className="grid gap-1">
+            <div key={key} className={["grid gap-1", wrapperClass].join(' ')}>
               {common}
               <select
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                className={[controlBase, 'h-10 text-sm'].join(' ')}
                 value={typeof value === 'string' ? value : ''}
                 onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
                 required={required && mode === 'create'}
@@ -426,17 +449,14 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
             </div>
           )
         }
-
-        const t = normalizeFieldType(field)
-        const isLongText = t === 'text' || key.includes('description') || key.includes('notes')
         const numericKind = isNumericField(field)
 
         if (isLongText) {
           return (
-            <div key={key} className="grid gap-1">
+            <div key={key} className={["grid gap-1", wrapperClass].join(' ')}>
               {common}
               <textarea
-                className="min-h-[120px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                className={[controlBase, 'min-h-[140px] text-sm'].join(' ')}
                 value={typeof value === 'string' ? value : ''}
                 onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
                 required={required && mode === 'create'}
@@ -446,11 +466,12 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
         }
 
         return (
-          <div key={key} className="grid gap-1">
+          <div key={key} className={["grid gap-1", wrapperClass].join(' ')}>
             {common}
             <input
               type={htmlTypeFor(field)}
               inputMode={inputModeFor(field)}
+              className={controlBase}
               value={typeof value === 'string' ? value : ''}
               onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
               placeholder={numericKind ? (numericKind === 'int' ? '0' : '0.00') : undefined}
@@ -459,12 +480,13 @@ export default function AutoAdminForm({ apiPath, mode, id, onDone }: Props) {
           </div>
         )
       })}
+      </div>
 
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
           disabled={saving}
-          className="h-10 bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
         >
           {saving ? 'Saving…' : mode === 'edit' ? 'Save' : 'Create'}
         </button>

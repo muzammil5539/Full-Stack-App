@@ -11,14 +11,10 @@ type AdminGateState =
 
 export function useAdminGate(): AdminGateState {
   const token = getAuthToken()
-  const [state, setState] = useState<AdminGateState>(() => ({ status: token ? 'loading' : 'logged-out' }))
+  const [state, setState] = useState<AdminGateState>({ status: 'loading' })
 
   useEffect(() => {
-    const t = getAuthToken()
-    if (!t) {
-      setState({ status: 'logged-out' })
-      return
-    }
+    if (!token) return
 
     let cancelled = false
     async function run() {
@@ -44,5 +40,6 @@ export function useAdminGate(): AdminGateState {
     }
   }, [token])
 
+  if (!token) return { status: 'logged-out' }
   return state
 }

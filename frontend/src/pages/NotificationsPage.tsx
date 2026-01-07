@@ -5,6 +5,9 @@ import AuthRequired from '../shared/ui/AuthRequired'
 import ErrorMessage from '../shared/ui/ErrorMessage'
 import Loading from '../shared/ui/Loading'
 
+const buttonBase =
+  'inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800'
+
 export default function NotificationsPage() {
   const { isAuthenticated } = useAuthToken()
   const [items, setItems] = useState<Notification[]>([])
@@ -35,13 +38,13 @@ export default function NotificationsPage() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1>Notifications</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
         <button
           onClick={async () => {
             await markAllNotificationsRead()
             await refresh()
           }}
-          className="h-9"
+          className={[buttonBase, 'h-9'].join(' ')}
         >
           Mark all as read
         </button>
