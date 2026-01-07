@@ -44,7 +44,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 
 **Reviews**
 - [ ] Allow authenticated users to manage their review safely (update/delete rules and object-level permissions).
-- [ ] Moderation/admin approval flow (currently API filters `is_approved=True` but does not expose an approval workflow).
+- [x] Moderation/admin approval flow (currently API filters `is_approved=True` but does not expose an approval workflow).
 
 **Notifications**
 - [ ] Decide whether notifications are user-writable; if not, lock down create/update/delete (currently `ModelViewSet` allows full CRUD).
@@ -105,7 +105,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Add-to-cart from product detail (including variant selection if variants exist).
 - [x] Reviews list UI on product detail.
 - [x] Review submission UI (rating + title + comment) for authenticated users.
-- [ ] Review edit/delete UI for the user’s own review (if backend supports it).
+- [x] Review edit/delete UI for the user’s own review (if backend supports it).
 
 **Checkout**
 - [x] Replace “starter” checkout with a real checkout form (shipping address selection/entry, billing address, notes).

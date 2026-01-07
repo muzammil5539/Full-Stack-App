@@ -1,4 +1,4 @@
-import { getJson, postJson } from './http'
+import { deleteJson, getJson, postJson } from './http'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -12,6 +12,7 @@ type PaginatedResponse<T> = {
 export type Review = {
   id: number
   product: number
+  user: number
   rating: number
   title: string
   comment: string
@@ -35,4 +36,8 @@ export async function listReviews(productId?: number): Promise<Review[]> {
 
 export async function submitReview(input: CreateReviewInput): Promise<Review> {
   return await postJson<Review>(`${API_BASE_URL}/api/v1/reviews/`, input)
+}
+
+export async function deleteReview(id: number): Promise<void> {
+  await deleteJson<void>(`${API_BASE_URL}/api/v1/reviews/${id}/`)
 }

@@ -61,3 +61,31 @@ export async function postJson<T = unknown>(url: string, body: unknown, init?: R
 
   return (await response.json()) as T
 }
+
+export async function deleteJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    method: 'DELETE',
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...getAuthHeader(),
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw {
+      message: text || `Request failed (${response.status})`,
+      status: response.status,
+    } satisfies ApiError
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const text = await response.text().catch(() => '')
+  if (!text) return undefined as T
+  return JSON.parse(text) as T
+}

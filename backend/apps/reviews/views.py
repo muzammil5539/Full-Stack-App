@@ -1,20 +1,62 @@
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from rest_framework import status, viewsets, permissions
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from .models import Review
 from .serializers import ReviewSerializer
 
 
+class IsOwnerOrAdminOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user and request.user.is_staff:
+            return True
+        return getattr(obj, 'user_id', None) == getattr(request.user, 'id', None)
+
+
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrAdminOrReadOnly]
     
     def get_queryset(self):
-        queryset = Review.objects.filter(is_approved=True)
+        user = getattr(self.request, 'user', None)
+        if user and user.is_staff:
+            queryset = Review.objects.all()
+        elif user and user.is_authenticated:
+            queryset = Review.objects.filter(Q(is_approved=True) | Q(user=user))
+        else:
+            queryset = Review.objects.filter(is_approved=True)
+
         product_id = self.request.query_params.get('product', None)
         if product_id:
             queryset = queryset.filter(product_id=product_id)
-        return queryset
+        return queryset.select_related('user', 'product').order_by('-created_at', '-id')
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    def pending(self, request):
+        queryset = Review.objects.filter(is_approved=False).select_related('user', 'product').order_by('-created_at', '-id')
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def approve(self, request, pk=None):
+        review = self.get_object()
+        review.is_approved = True
+        review.save(update_fields=['is_approved'])
+        return Response(self.get_serializer(review).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def unapprove(self, request, pk=None):
+        review = self.get_object()
+        review.is_approved = False
+        review.save(update_fields=['is_approved'])
+        return Response(self.get_serializer(review).data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         # One review per (user, product). If it exists, update instead of 500ing.

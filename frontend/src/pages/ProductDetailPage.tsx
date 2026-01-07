@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getProductBySlug, type Product, type ProductVariant } from '../api/products'
 import { addCartItem } from '../api/cart'
-import { listReviews, submitReview, type Review } from '../api/reviews'
+import { deleteReview, listReviews, submitReview, type Review } from '../api/reviews'
+import { getMyUser } from '../api/accounts'
 import { useAuthToken } from '../auth/useAuthToken'
 import ErrorMessage from '../shared/ui/ErrorMessage'
 import Loading from '../shared/ui/Loading'
@@ -12,6 +13,7 @@ export default function ProductDetailPage() {
   const { isAuthenticated } = useAuthToken()
   const [product, setProduct] = useState<Product | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [myUserId, setMyUserId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
@@ -23,6 +25,11 @@ export default function ProductDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null)
+  const didPrefillReviewFormRef = useRef(false)
+
+  useEffect(() => {
+    didPrefillReviewFormRef.current = false
+  }, [slug])
 
   useEffect(() => {
     const slugParam = slug
@@ -35,10 +42,22 @@ export default function ProductDetailPage() {
         setLoading(true)
         setError(null)
         const prod = await getProductBySlug(slugValue)
-        const revs = await listReviews(prod.id)
+        const [revs, me] = await Promise.all([
+          listReviews(prod.id),
+          isAuthenticated ? getMyUser() : Promise.resolve(null),
+        ])
         if (!cancelled) {
           setProduct(prod)
           setReviews(revs)
+          setMyUserId(me?.id ?? null)
+
+          const mine = me ? revs.find((r) => r.user === me.id) : undefined
+          if (mine && !didPrefillReviewFormRef.current) {
+            didPrefillReviewFormRef.current = true
+            setReviewRating(mine.rating)
+            setReviewTitle(mine.title)
+            setReviewComment(mine.comment)
+          }
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Failed to load product'
@@ -52,7 +71,7 @@ export default function ProductDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [slug])
+  }, [slug, isAuthenticated])
 
   async function handleAddToCart() {
     if (!product || addingToCart) return
@@ -115,6 +134,33 @@ export default function ProductDetailPage() {
       setReviews(revs)
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to submit review'
+      setReviewError(message)
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
+
+  async function handleDeleteMyReview() {
+    if (!product || !isAuthenticated || !myUserId) return
+    const mine = reviews.find((r) => r.user === myUserId)
+    if (!mine) return
+
+    try {
+      setSubmittingReview(true)
+      setReviewError(null)
+      setReviewSuccess(null)
+
+      await deleteReview(mine.id)
+
+      setReviewTitle('')
+      setReviewComment('')
+      setReviewRating(5)
+      setReviewSuccess('Your review was deleted.')
+
+      const revs = await listReviews(product.id)
+      setReviews(revs)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to delete review'
       setReviewError(message)
     } finally {
       setSubmittingReview(false)
@@ -329,6 +375,16 @@ export default function ProductDetailPage() {
               >
                 {submittingReview ? 'Submitting…' : 'Submit review'}
               </button>
+
+              {myUserId && reviews.some((r) => r.user === myUserId) ? (
+                <button
+                  onClick={handleDeleteMyReview}
+                  disabled={submittingReview}
+                  className="inline-flex h-10 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  Delete my review
+                </button>
+              ) : null}
             </div>
           </div>
         ) : (
