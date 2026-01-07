@@ -1,4 +1,4 @@
-import { getJson } from './http'
+import { getJson, postJson } from './http'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -47,4 +47,26 @@ export async function getMyUser(): Promise<User | null> {
 export async function listMyAddresses(): Promise<Address[]> {
   const data = await getJson<PaginatedResponse<Address>>(`${API_BASE_URL}/api/v1/accounts/addresses/`)
   return data.results
+}
+
+export type CreateAddressInput = {
+  user: number
+  address_type: 'billing' | 'shipping'
+  full_name: string
+  phone: string
+  address_line1: string
+  address_line2?: string
+  city: string
+  state: string
+  postal_code: string
+  country: string
+  is_default?: boolean
+}
+
+export async function createMyAddress(input: CreateAddressInput): Promise<Address> {
+  return postJson<Address>(`${API_BASE_URL}/api/v1/accounts/addresses/`, {
+    ...input,
+    address_line2: input.address_line2 ?? '',
+    is_default: input.is_default ?? false,
+  })
 }

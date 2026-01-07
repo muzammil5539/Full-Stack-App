@@ -19,14 +19,16 @@ export default function ProductDetailPage() {
   const [addSuccess, setAddSuccess] = useState(false)
 
   useEffect(() => {
-    if (!slug) return
+    const slugParam = slug
+    if (!slugParam) return
+    const slugValue = slugParam
 
     let cancelled = false
     async function load() {
       try {
         setLoading(true)
         setError(null)
-        const [prod, revs] = await Promise.all([getProductBySlug(slug), listReviews()])
+        const [prod, revs] = await Promise.all([getProductBySlug(slugValue), listReviews()])
         if (!cancelled) {
           setProduct(prod)
           setReviews(revs.filter((r) => r.product === prod.id))

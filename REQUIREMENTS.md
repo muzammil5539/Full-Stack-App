@@ -11,7 +11,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Backend: validate money fields in checkout (non-negative values; prevent invalid totals).
 - [x] Backend: add cart quantity update endpoint (set/increment/decrement) and align UI.
 - [x] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
-- [ ] Frontend: implement real checkout form (addresses + totals + confirmation).
+- [x] Frontend: implement real checkout form (addresses + totals + confirmation).
 
 ---
 
@@ -29,7 +29,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Order lifecycle beyond `cancel` (refund/return, status transitions like paid/shipped/delivered, admin update actions).
 
 **Payments**
-- [ ] Payment creation/processing API (currently payments are read-only; no “pay for order” flow).
+- [x] Payment creation/processing API (currently payments are read-only; no “pay for order” flow).
 - [ ] Payment status updates tied to order state (paid/failed/refunded) + audit trail.
 
 **Cart**
@@ -88,10 +88,10 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Reviews UI on product detail (list reviews, create/update review).
 
 **Checkout**
-- [ ] Replace “starter” checkout with a real checkout form (shipping address selection/entry, billing address, notes).
-- [ ] Show computed totals (subtotal/shipping/tax/discount/total) using server-side values (not only client sums).
-- [ ] Payment method selection + payment submission flow.
-- [ ] Order confirmation screen (success state with order number/details).
+- [x] Replace “starter” checkout with a real checkout form (shipping address selection/entry, billing address, notes).
+- [x] Show computed totals (subtotal/shipping/tax/discount/total) using server-side values (not only client sums).
+- [x] Payment method selection + payment submission flow.
+- [x] Order confirmation screen (success state with order number/details).
 
 **Orders**
 - [ ] Order detail page (items, totals, addresses, status history).
@@ -106,7 +106,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Profile editing UI (if desired) to match backend user/profile endpoints.
 
 **Payments**
-- [ ] Payment initiation UI (current page only lists existing payments).
+- [x] Payment initiation UI (current page only lists existing payments).
 
 **Notifications**
 - [ ] Mark single notification read in UI (backend supports it; UI only “mark all”).

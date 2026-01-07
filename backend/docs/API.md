@@ -285,6 +285,43 @@ Content-Type: application/json
 }
 ```
 
+### Payments
+
+#### List Payments
+```http
+GET /api/v1/payments/
+Authorization: Token <token>
+```
+
+#### Create Payment for Order
+```http
+POST /api/v1/payments/create_for_order/
+Authorization: Token <token>
+Content-Type: application/json
+
+{
+    "order": 1,
+    "payment_method": "cash_on_delivery"
+}
+```
+
+Notes:
+- This creates a payment record for an order that belongs to the authenticated user.
+- `payment_method` must be one of: `credit_card`, `debit_card`, `paypal`, `stripe`, `cash_on_delivery`.
+
+Response:
+```json
+{
+    "id": 1,
+    "order": 1,
+    "payment_method": "cash_on_delivery",
+    "transaction_id": "TX-...",
+    "amount": "214.98",
+    "status": "pending",
+    "payment_date": "2026-01-07T10:00:00Z"
+}
+```
+
 ### Reviews
 
 #### List Reviews
