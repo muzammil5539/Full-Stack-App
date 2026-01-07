@@ -62,6 +62,12 @@ class AddressViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user).order_by('-created_at', '-id')
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
 
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
@@ -69,3 +75,9 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return UserProfile.objects.filter(user=self.request.user).order_by('-created_at', '-id')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
