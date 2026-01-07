@@ -52,7 +52,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return User.objects.filter(id=self.request.user.id)
+        return User.objects.filter(id=self.request.user.id).order_by('id')
 
 
 class AddressViewSet(viewsets.ModelViewSet):
@@ -60,7 +60,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Address.objects.filter(user=self.request.user)
+        return Address.objects.filter(user=self.request.user).order_by('-created_at', '-id')
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -68,4 +68,4 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return UserProfile.objects.filter(user=self.request.user)
+        return UserProfile.objects.filter(user=self.request.user).order_by('-created_at', '-id')

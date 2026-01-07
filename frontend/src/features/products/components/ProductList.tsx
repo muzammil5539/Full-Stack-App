@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addCartItem } from '../../../api/cart'
 import { addWishlistItem } from '../../../api/wishlist'
@@ -14,6 +15,8 @@ const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:t
 export default function ProductList() {
   const { products, loading, error } = useProducts()
   const { isAuthenticated } = useAuthToken()
+  const [cartPending, setCartPending] = useState<Record<number, boolean>>({})
+  const [wishlistPending, setWishlistPending] = useState<Record<number, boolean>>({})
 
   if (loading) return <Loading label="Loading products…" />
   if (error) return <ErrorMessage message={error} />
@@ -39,22 +42,42 @@ export default function ProductList() {
               View
             </Link>
             <button
-              disabled={!isAuthenticated}
+              disabled={!isAuthenticated || Boolean(cartPending[p.id])}
               onClick={async () => {
-                await addCartItem({ product: p.id, quantity: 1 })
+                if (cartPending[p.id]) return
+                try {
+                  setCartPending((prev) => ({ ...prev, [p.id]: true }))
+                  await addCartItem({ product: p.id, quantity: 1 })
+                } finally {
+                  setCartPending((prev) => {
+                    const next = { ...prev }
+                    delete next[p.id]
+                    return next
+                  })
+                }
               }}
               className={[buttonBase, 'h-9'].join(' ')}
             >
-              Add to cart
+              {cartPending[p.id] ? 'Adding…' : 'Add to cart'}
             </button>
             <button
-              disabled={!isAuthenticated}
+              disabled={!isAuthenticated || Boolean(wishlistPending[p.id])}
               onClick={async () => {
-                await addWishlistItem(p.id)
+                if (wishlistPending[p.id]) return
+                try {
+                  setWishlistPending((prev) => ({ ...prev, [p.id]: true }))
+                  await addWishlistItem(p.id)
+                } finally {
+                  setWishlistPending((prev) => {
+                    const next = { ...prev }
+                    delete next[p.id]
+                    return next
+                  })
+                }
               }}
               className={[buttonBase, 'h-9'].join(' ')}
             >
-              Wishlist
+              {wishlistPending[p.id] ? 'Saving…' : 'Wishlist'}
             </button>
             {!isAuthenticated && <span className="text-xs text-slate-500 dark:text-slate-400">Login to buy</span>}
           </div>

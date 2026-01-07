@@ -23,6 +23,7 @@ export async function listOrders(): Promise<Order[]> {
 }
 
 export async function createOrderFromCart(params: {
+  item_ids?: number[]
   shipping_address?: number
   billing_address?: number
   shipping_cost?: number

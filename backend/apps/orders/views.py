@@ -21,33 +21,39 @@ class OrderViewSet(viewsets.ModelViewSet):
         """Create order from cart."""
         try:
             cart = Cart.objects.get(user=request.user)
-            
-            if not cart.items.exists():
-                return Response(
-                    {'error': 'Cart is empty'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+
+            item_ids = request.data.get('item_ids', None)
+            items_qs = cart.items.all()
+            if isinstance(item_ids, list):
+                if len(item_ids) == 0:
+                    return Response({'error': 'No items selected'}, status=status.HTTP_400_BAD_REQUEST)
+                items_qs = items_qs.filter(id__in=item_ids)
+
+            if not items_qs.exists():
+                return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
             
             with transaction.atomic():
                 shipping_cost = Decimal(str(request.data.get('shipping_cost', 0) or 0))
                 tax = Decimal(str(request.data.get('tax', 0) or 0))
                 discount = Decimal(str(request.data.get('discount', 0) or 0))
 
+                subtotal = sum((i.subtotal for i in items_qs), Decimal('0'))
+
                 # Create order
                 order = Order.objects.create(
                     user=request.user,
                     shipping_address_id=request.data.get('shipping_address'),
                     billing_address_id=request.data.get('billing_address'),
-                    subtotal=cart.total_price,
+                    subtotal=subtotal,
                     shipping_cost=shipping_cost,
                     tax=tax,
                     discount=discount,
-                    total=cart.total_price + shipping_cost + tax - discount,
+                    total=subtotal + shipping_cost + tax - discount,
                     notes=request.data.get('notes', '')
                 )
                 
                 # Create order items from cart
-                for cart_item in cart.items.all():
+                for cart_item in items_qs:
                     OrderItem.objects.create(
                         order=order,
                         product=cart_item.product,
@@ -63,8 +69,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                     notes='Order created'
                 )
                 
-                # Clear cart
-                cart.items.all().delete()
+                # Remove ordered items from cart
+                items_qs.delete()
             
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
