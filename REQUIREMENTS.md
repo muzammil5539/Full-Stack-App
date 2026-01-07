@@ -4,6 +4,15 @@ Last updated: 2026-01-07
 
 This document lists **incomplete** Functional Requirements (**FRs**) and Non‑Functional Requirements (**NFRs**) for both backend (Django/DRF) and frontend (React/Vite).
 
+## Tracking (Next Up)
+
+Use this short list for day-to-day progress. The full checklist continues below.
+
+- [x] Backend: validate money fields in checkout (non-negative values; prevent invalid totals).
+- [x] Backend: add cart quantity update endpoint (set/increment/decrement) and align UI.
+- [ ] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
+- [ ] Frontend: implement real checkout form (addresses + totals + confirmation).
+
 ---
 
 ## Backend (Django/DRF)
@@ -11,9 +20,9 @@ This document lists **incomplete** Functional Requirements (**FRs**) and Non‑F
 ### FRs (Functional Requirements)
 
 **Checkout / Orders**
-- [ ] Support selecting cart items in API docs and requests (document `item_ids` for `POST /api/v1/orders/create_from_cart/`).
-- [ ] Validate `item_ids` errors clearly (e.g., if IDs are invalid/not in user cart, return a specific error instead of collapsing into “Cart is empty”).
-- [ ] Compute totals safely server-side (guard against negative `shipping_cost`, `tax`, `discount`, and enforce `total >= 0`).
+- [x] Support selecting cart items in API docs and requests (document `item_ids` for `POST /api/v1/orders/create_from_cart/`).
+- [x] Validate `item_ids` errors clearly (e.g., if IDs are invalid/not in user cart, return a specific error instead of collapsing into “Cart is empty”).
+- [x] Compute totals safely server-side (guard against negative `shipping_cost`, `tax`, `discount`, and enforce `total >= 0`).
 - [ ] Enforce required checkout fields (if your business rules require shipping/billing addresses, validate and error when missing).
 - [ ] Stock enforcement at checkout (verify stock for product/variant and prevent oversell).
 - [ ] Order detail endpoints should include consistent, complete data needed by UI (items, product snapshots, totals, addresses).
@@ -24,9 +33,9 @@ This document lists **incomplete** Functional Requirements (**FRs**) and Non‑F
 - [ ] Payment status updates tied to order state (paid/failed/refunded) + audit trail.
 
 **Cart**
-- [ ] Update quantity / set quantity endpoint (currently only add/increment, remove, clear).
-- [ ] Decrement quantity (optional) or remove when quantity reaches 0.
-- [ ] Make `clear` robust when cart doesn’t exist yet (avoid 500 if cart record missing).
+- [x] Update quantity / set quantity endpoint (currently only add/increment, remove, clear).
+- [x] Decrement quantity (optional) or remove when quantity reaches 0.
+- [x] Make `clear` robust when cart doesn’t exist yet (avoid 500 if cart record missing).
 
 **Products**
 - [ ] Ensure product detail serialization supports the UI needs (images, variants, attributes) and remains stable.

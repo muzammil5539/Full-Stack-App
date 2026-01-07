@@ -49,6 +49,18 @@ export async function removeCartItem(itemId: number): Promise<Cart> {
   return postJson<Cart>(`${API_BASE_URL}/api/v1/cart/remove_item/`, { item_id: itemId })
 }
 
+export async function setCartItemQuantity(itemId: number, quantity: number): Promise<Cart> {
+  return postJson<Cart>(`${API_BASE_URL}/api/v1/cart/set_quantity/`, { item_id: itemId, quantity })
+}
+
+export async function incrementCartItem(itemId: number): Promise<Cart> {
+  return postJson<Cart>(`${API_BASE_URL}/api/v1/cart/increment_item/`, { item_id: itemId })
+}
+
+export async function decrementCartItem(itemId: number): Promise<Cart> {
+  return postJson<Cart>(`${API_BASE_URL}/api/v1/cart/decrement_item/`, { item_id: itemId })
+}
+
 export async function clearCart(): Promise<Cart> {
   return postJson<Cart>(`${API_BASE_URL}/api/v1/cart/clear/`, {})
 }

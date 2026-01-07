@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { clearCart, getMyCart, removeCartItem, type Cart } from '../api/cart'
+import {
+  clearCart,
+  decrementCartItem,
+  getMyCart,
+  incrementCartItem,
+  removeCartItem,
+  setCartItemQuantity,
+  type Cart,
+} from '../api/cart'
 import { useAuthToken } from '../auth/useAuthToken'
 import AuthRequired from '../shared/ui/AuthRequired'
 import ErrorMessage from '../shared/ui/ErrorMessage'
@@ -19,6 +27,8 @@ export default function CartPage() {
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingByItemId, setPendingByItemId] = useState<Record<number, boolean>>({})
+  const [qtyDraftByItemId, setQtyDraftByItemId] = useState<Record<number, string>>({})
 
   async function refresh() {
     try {
@@ -26,13 +36,59 @@ export default function CartPage() {
       setError(null)
       const data = await getMyCart()
       setCart(data)
-      // Default: select all items when cart loads/changes
-      setSelectedItemIds(data.items.map((i) => i.id))
+
+      // Preserve existing selections when possible; default to select all.
+      setSelectedItemIds((prev) => {
+        const nextIds = data.items.map((i) => i.id)
+        if (prev.length === 0) return nextIds
+        const nextSet = new Set(nextIds)
+        const kept = prev.filter((id) => nextSet.has(id))
+        return kept.length ? kept : nextIds
+      })
+
+      // Keep quantity drafts in sync
+      setQtyDraftByItemId((prev) => {
+        const next: Record<number, string> = { ...prev }
+        const nextSet = new Set<number>()
+        for (const item of data.items) {
+          nextSet.add(item.id)
+          if (next[item.id] === undefined) next[item.id] = String(item.quantity)
+        }
+        for (const key of Object.keys(next)) {
+          const id = Number(key)
+          if (!nextSet.has(id)) delete next[id]
+        }
+        return next
+      })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to load cart'
       setError(message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  function setPending(itemId: number, pending: boolean) {
+    setPendingByItemId((prev) => {
+      const next = { ...prev }
+      if (pending) next[itemId] = true
+      else delete next[itemId]
+      return next
+    })
+  }
+
+  async function commitQuantity(itemId: number) {
+    const raw = (qtyDraftByItemId[itemId] ?? '').trim()
+    if (raw === '') return
+    const nextQty = Number(raw)
+    if (!Number.isFinite(nextQty) || nextQty < 0) return
+    if (pendingByItemId[itemId]) return
+    try {
+      setPending(itemId, true)
+      await setCartItemQuantity(itemId, nextQty)
+      await refresh()
+    } finally {
+      setPending(itemId, false)
     }
   }
 
@@ -131,10 +187,70 @@ export default function CartPage() {
                     }}
                   />
 
-                  <div className="grid min-w-0 gap-1">
+                  <div className="grid min-w-0 gap-2">
                   <strong className="text-sm font-semibold">{it.product_details?.name ?? `Product #${it.product}`}</strong>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Qty: {it.quantity} • Price: {it.price} • Subtotal: {it.subtotal}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span>Price: {it.price}</span>
+                    <span>•</span>
+                    <span>Subtotal: {it.subtotal}</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      disabled={Boolean(pendingByItemId[it.id])}
+                      onClick={async () => {
+                        if (pendingByItemId[it.id]) return
+                        try {
+                          setPending(it.id, true)
+                          await decrementCartItem(it.id)
+                          await refresh()
+                        } finally {
+                          setPending(it.id, false)
+                        }
+                      }}
+                      className={[buttonBase, 'h-9 w-9 px-0'].join(' ')}
+                      aria-label="Decrease quantity"
+                      type="button"
+                    >
+                      −
+                    </button>
+
+                    <input
+                      value={qtyDraftByItemId[it.id] ?? String(it.quantity)}
+                      onChange={(e) => {
+                        setQtyDraftByItemId((prev) => ({ ...prev, [it.id]: e.target.value }))
+                      }}
+                      onBlur={() => {
+                        void commitQuantity(it.id)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      inputMode="numeric"
+                      className="h-9 w-16 rounded-md border border-slate-300 bg-white px-2 text-center text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                      aria-label="Quantity"
+                    />
+
+                    <button
+                      disabled={Boolean(pendingByItemId[it.id])}
+                      onClick={async () => {
+                        if (pendingByItemId[it.id]) return
+                        try {
+                          setPending(it.id, true)
+                          await incrementCartItem(it.id)
+                          await refresh()
+                        } finally {
+                          setPending(it.id, false)
+                        }
+                      }}
+                      className={[buttonBase, 'h-9 w-9 px-0'].join(' ')}
+                      aria-label="Increase quantity"
+                      type="button"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
                 </div>

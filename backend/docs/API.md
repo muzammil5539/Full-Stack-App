@@ -163,6 +163,46 @@ Content-Type: application/json
 }
 ```
 
+#### Set Item Quantity
+```http
+POST /api/v1/cart/set_quantity/
+Authorization: Token <token>
+Content-Type: application/json
+
+{
+    "item_id": 1,
+    "quantity": 3
+}
+```
+
+Notes:
+- If `quantity` is `0`, the item will be deleted.
+
+#### Increment Item Quantity
+```http
+POST /api/v1/cart/increment_item/
+Authorization: Token <token>
+Content-Type: application/json
+
+{
+    "item_id": 1
+}
+```
+
+#### Decrement Item Quantity
+```http
+POST /api/v1/cart/decrement_item/
+Authorization: Token <token>
+Content-Type: application/json
+
+{
+    "item_id": 1
+}
+```
+
+Notes:
+- If the quantity reaches `0`, the item will be deleted.
+
 #### Clear Cart
 ```http
 POST /api/v1/cart/clear/
@@ -190,6 +230,7 @@ Authorization: Token <token>
 Content-Type: application/json
 
 {
+    "item_ids": [1, 2, 3],
     "shipping_address": 1,
     "billing_address": 1,
     "shipping_cost": "10.00",
@@ -198,6 +239,23 @@ Content-Type: application/json
     "notes": "Please deliver after 5 PM"
 }
 ```
+
+Notes:
+- `item_ids` is optional. If provided, the order will be created **only** from those cart item IDs, and only those items will be removed from the cart.
+- If `item_ids` is an empty list (`[]`), the API returns `400` with `{ "error": "No items selected" }`.
+- If `item_ids` contains IDs that are not in the user’s cart, the API returns `400` with:
+    ```json
+    {
+        "error": "Some items not found in cart",
+        "missing_item_ids": [123, 456]
+    }
+    ```
+- If `item_ids` is not a list of integers, the API returns `400` with `{ "error": "Invalid item_ids" }`.
+- If the cart (or selected items) is empty, the API returns `400` with `{ "error": "Cart is empty" }`.
+
+Pricing validation:
+- `shipping_cost`, `tax`, and `discount` must be valid decimals and **non-negative**.
+- `discount` cannot exceed `subtotal + shipping_cost + tax`.
 
 Response:
 ```json
