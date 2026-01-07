@@ -12,7 +12,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Backend: add cart quantity update endpoint (set/increment/decrement) and align UI.
 - [x] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
 - [x] Frontend: implement real checkout form (addresses + totals + confirmation).
-- [ ] Frontend: show Profile/Settings/Logout for all authenticated users (not admin-only).
+- [x] Frontend: show Profile/Settings/Logout for all authenticated users (not admin-only).
 
 ---
 
@@ -51,7 +51,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Add ordering on notification querysets to avoid pagination warnings and to show newest first.
 
 **Auth / Accounts**
-- [ ] Addresses: enforce `user=request.user` on create/update (do not accept arbitrary `user` in payload).
+- [x] Addresses: enforce `user=request.user` on create/update (do not accept arbitrary `user` in payload).
 - [ ] Addresses: default address behavior (only one default per user per `address_type`, auto-unset others).
 - [ ] Password reset / change password.
 - [ ] Email verification flow (field exists in UI response, but no verify endpoint/flow).
@@ -62,7 +62,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Do not trust client-provided money fields by default; validate/compute totals on server.
 - [ ] Add throttling/rate limiting (API docs mention rate limits, but DRF throttling is not configured in settings).
 - [ ] Ensure object-level permission checks everywhere (especially admin APIs and any write endpoints).
-- [ ] Prevent cross-user data writes (e.g., addresses, reviews) even if client sends foreign IDs.
+- [x] Prevent cross-user data writes (e.g., addresses, reviews) even if client sends foreign IDs.
 
 **Reliability & Data Integrity**
 - [ ] Make checkout atomic and consistent under concurrency (stock checks + order creation + cart mutation).

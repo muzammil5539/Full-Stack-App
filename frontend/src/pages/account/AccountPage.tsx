@@ -57,6 +57,9 @@ export default function AccountPage() {
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">
+        <Link to="/account/settings" className={linkBase}>
+          Settings
+        </Link>
         <Link to="/orders" className={linkBase}>
           Orders
         </Link>

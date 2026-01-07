@@ -48,7 +48,8 @@ export default function RootLayout() {
             {isAuthenticated ? (
               <>
                 {adminGate.status === 'allowed' ? <NavItem to="/admin" label="Admin" /> : null}
-                <NavItem to="/account" label="Account" />
+                <NavItem to="/account" label="Profile" />
+                <NavItem to="/account/settings" label="Settings" />
                 <button
                   onClick={logout}
                   className={[buttonBase, 'h-9'].join(' ')}

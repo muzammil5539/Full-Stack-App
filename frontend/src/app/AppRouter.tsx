@@ -14,6 +14,7 @@ import WishlistPage from '../pages/WishlistPage'
 import AccountPage from '../pages/account/AccountPage'
 import LoginPage from '../pages/account/LoginPage'
 import RegisterPage from '../pages/account/RegisterPage'
+import SettingsPage from '../pages/account/SettingsPage'
 import AdminPage from '../pages/admin/AdminPage'
 import AdminModelAddPage from '../pages/admin/AdminModelAddPage'
 import AdminModelChangeListPage from '../pages/admin/AdminModelChangeListPage'
@@ -39,6 +40,7 @@ export default function AppRouter() {
           <Route path="admin/:app/:model/:id/change/*" element={<AdminModelEditPage />} />
           <Route path="admin/:app/:model/*" element={<AdminModelChangeListPage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="account/settings" element={<SettingsPage />} />
           <Route path="account/login" element={<LoginPage />} />
           <Route path="account/register" element={<RegisterPage />} />
           <Route path="*" element={<NotFoundPage />} />
