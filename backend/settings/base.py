@@ -39,6 +39,9 @@ INSTALLED_APPS = [
 
     # Admin API (admin-only CRUD)
     'apps.admin_api',
+    
+    # OpenTelemetry integration
+    'apps.telemetry',
 ]
 
 MIDDLEWARE = [
@@ -150,3 +153,6 @@ CORS_ALLOWED_ORIGINS = [
 
 # Email settings (configure for production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# OpenTelemetry settings
+OTEL_ENABLED = os.getenv('OTEL_ENABLED', 'true').lower() == 'true'

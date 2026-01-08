@@ -81,11 +81,11 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Capture request context for failures (user id, order id, payment id where relevant).
 
 **OpenTelemetry (Backend)**
-- [ ] Install and configure OpenTelemetry SDK for Python (Django instrumentation).
-- [ ] Auto-instrument HTTP requests (incoming/outgoing), database queries, and cache operations.
-- [ ] Add custom spans for critical business operations (checkout, payment processing, order creation).
-- [ ] Configure trace exporter (OTLP, Jaeger, or Zipkin) for distributed tracing.
-- [ ] Implement metrics collection (request duration, error rates, cart operations, order completions).
+- [x] Install and configure OpenTelemetry SDK for Python (Django instrumentation).
+- [x] Auto-instrument HTTP requests (incoming/outgoing), database queries, and cache operations.
+- [x] Add custom spans for critical business operations (checkout, payment processing, order creation).
+- [x] Configure trace exporter (OTLP, Jaeger, or Zipkin) for distributed tracing.
+- [x] Implement metrics collection (request duration, error rates, cart operations, order completions).
 - [ ] Add custom metrics for business events (products added to cart, checkout started/completed, payment success/failure).
 - [ ] Configure metrics exporter (Prometheus, OTLP) with appropriate aggregation.
 - [ ] Implement structured logging with trace context injection (correlate logs with traces).

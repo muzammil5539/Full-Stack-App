@@ -29,6 +29,9 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
 ]
 
+# Disable OpenTelemetry for tests (unless explicitly testing it)
+OTEL_ENABLED = False
+
 # Disable throttling for tests
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,

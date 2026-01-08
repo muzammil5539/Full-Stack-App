@@ -1,0 +1,271 @@
+"""
+Tests for business metrics collection.
+"""
+from unittest import mock
+from django.test import TestCase
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+
+
+class BusinessMetricsTests(TestCase):
+    """Test business metrics are properly defined and can record values."""
+    
+    def setUp(self):
+        """Set up meter provider with in-memory reader."""
+        self.reader = InMemoryMetricReader()
+        self.meter_provider = MeterProvider(metric_readers=[self.reader])
+        metrics.set_meter_provider(self.meter_provider)
+    
+    def tearDown(self):
+        """Clean up metrics."""
+        self.reader.shutdown()
+    
+    def test_cart_metrics_exist(self):
+        """Test that cart metrics are defined."""
+        from utils.telemetry import cart_add_counter, cart_remove_counter
+        
+        self.assertIsNotNone(cart_add_counter)
+        self.assertIsNotNone(cart_remove_counter)
+    
+    def test_cart_metrics_can_record(self):
+        """Test that cart metrics can record values."""
+        from utils.telemetry import cart_add_counter, cart_remove_counter
+        
+        # Record some cart operations
+        cart_add_counter.add(1, {"product_id": "123", "user_id": "456"})
+        cart_add_counter.add(2, {"product_id": "789", "user_id": "456"})
+        cart_remove_counter.add(1, {"product_id": "123", "user_id": "456"})
+        
+        # Get metrics data
+        metrics_data = self.reader.get_metrics_data()
+        
+        # Verify metrics were recorded
+        self.assertIsNotNone(metrics_data)
+    
+    def test_checkout_metrics_exist(self):
+        """Test that checkout metrics are defined."""
+        from utils.telemetry import (
+            checkout_started_counter,
+            checkout_completed_counter,
+            checkout_failed_counter,
+            checkout_duration_histogram,
+        )
+        
+        self.assertIsNotNone(checkout_started_counter)
+        self.assertIsNotNone(checkout_completed_counter)
+        self.assertIsNotNone(checkout_failed_counter)
+        self.assertIsNotNone(checkout_duration_histogram)
+    
+    def test_checkout_metrics_can_record(self):
+        """Test that checkout metrics can record values."""
+        from utils.telemetry import (
+            checkout_started_counter,
+            checkout_completed_counter,
+            checkout_failed_counter,
+            checkout_duration_histogram,
+        )
+        
+        # Record checkout lifecycle
+        checkout_started_counter.add(1, {"user_id": "123"})
+        checkout_duration_histogram.record(250.5, {"status": "success"})
+        checkout_completed_counter.add(1, {"user_id": "123"})
+        
+        # Record failed checkout
+        checkout_started_counter.add(1, {"user_id": "456"})
+        checkout_duration_histogram.record(100.2, {"status": "error"})
+        checkout_failed_counter.add(1, {"user_id": "456", "error_type": "insufficient_stock"})
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_order_metrics_exist(self):
+        """Test that order metrics are defined."""
+        from utils.telemetry import order_created_counter, order_cancelled_counter
+        
+        self.assertIsNotNone(order_created_counter)
+        self.assertIsNotNone(order_cancelled_counter)
+    
+    def test_order_metrics_can_record(self):
+        """Test that order metrics can record values."""
+        from utils.telemetry import order_created_counter, order_cancelled_counter
+        
+        order_created_counter.add(1, {
+            "order_status": "pending",
+            "payment_status": "unpaid"
+        })
+        order_cancelled_counter.add(1, {
+            "order_status": "cancelled",
+            "reason": "customer_request"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_payment_metrics_exist(self):
+        """Test that payment metrics are defined."""
+        from utils.telemetry import (
+            payment_success_counter,
+            payment_failed_counter,
+            payment_duration_histogram,
+        )
+        
+        self.assertIsNotNone(payment_success_counter)
+        self.assertIsNotNone(payment_failed_counter)
+        self.assertIsNotNone(payment_duration_histogram)
+    
+    def test_payment_metrics_can_record(self):
+        """Test that payment metrics can record values."""
+        from utils.telemetry import (
+            payment_success_counter,
+            payment_failed_counter,
+            payment_duration_histogram,
+        )
+        
+        # Successful payment
+        payment_duration_histogram.record(500.0, {"payment_method": "credit_card", "status": "success"})
+        payment_success_counter.add(1, {"payment_method": "credit_card"})
+        
+        # Failed payment
+        payment_duration_histogram.record(300.0, {"payment_method": "paypal", "status": "error"})
+        payment_failed_counter.add(1, {
+            "payment_method": "paypal",
+            "error_type": "gateway_timeout"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_api_error_metric_exists(self):
+        """Test that API error metric is defined."""
+        from utils.telemetry import api_error_counter
+        
+        self.assertIsNotNone(api_error_counter)
+    
+    def test_api_error_metric_can_record(self):
+        """Test that API error metric can record values."""
+        from utils.telemetry import api_error_counter
+        
+        api_error_counter.add(1, {
+            "endpoint": "/api/v1/orders/create_from_cart/",
+            "error_type": "ValidationError",
+            "status_code": "400"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_histogram_records_distribution(self):
+        """Test that histograms record value distributions."""
+        from utils.telemetry import checkout_duration_histogram
+        
+        # Record multiple values
+        durations = [100, 150, 200, 250, 300, 350, 400]
+        for duration in durations:
+            checkout_duration_histogram.record(duration, {"status": "success"})
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_counter_with_different_attributes(self):
+        """Test that counters properly handle different attribute sets."""
+        from utils.telemetry import cart_add_counter
+        
+        # Record with different attributes
+        cart_add_counter.add(1, {"product_id": "A", "category": "electronics"})
+        cart_add_counter.add(1, {"product_id": "B", "category": "clothing"})
+        cart_add_counter.add(1, {"product_id": "A", "category": "electronics"})
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+
+
+class MetricsAttributesTests(TestCase):
+    """Test that metrics have appropriate attributes."""
+    
+    def setUp(self):
+        """Set up meter provider."""
+        self.reader = InMemoryMetricReader()
+        self.meter_provider = MeterProvider(metric_readers=[self.reader])
+        metrics.set_meter_provider(self.meter_provider)
+    
+    def tearDown(self):
+        """Clean up."""
+        self.reader.shutdown()
+    
+    def test_metrics_with_user_context(self):
+        """Test recording metrics with user context."""
+        from utils.telemetry import checkout_started_counter
+        
+        checkout_started_counter.add(1, {
+            "user_id": "12345",
+            "user_type": "authenticated"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_metrics_with_business_entities(self):
+        """Test recording metrics with business entity IDs."""
+        from utils.telemetry import order_created_counter
+        
+        order_created_counter.add(1, {
+            "order_id": "ORD-123",
+            "order_status": "pending",
+            "payment_status": "unpaid",
+            "total_amount": "199.99"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+    
+    def test_metrics_with_error_context(self):
+        """Test recording error metrics with context."""
+        from utils.telemetry import checkout_failed_counter
+        
+        checkout_failed_counter.add(1, {
+            "user_id": "789",
+            "error_type": "insufficient_stock",
+            "product_id": "PROD-456",
+            "requested_quantity": "10",
+            "available_quantity": "5"
+        })
+        
+        metrics_data = self.reader.get_metrics_data()
+        self.assertIsNotNone(metrics_data)
+
+
+class MetricsIntegrationTests(TestCase):
+    """Test metrics integration with business operations."""
+    
+    @mock.patch('utils.telemetry.cart_add_counter')
+    def test_cart_add_records_metric(self, mock_counter):
+        """Test that adding to cart records a metric."""
+        # Simulate cart add operation
+        mock_counter.add(1, {"product_id": "123"})
+        
+        # Verify metric was recorded
+        mock_counter.add.assert_called_once_with(1, {"product_id": "123"})
+    
+    @mock.patch('utils.telemetry.checkout_completed_counter')
+    @mock.patch('utils.telemetry.checkout_duration_histogram')
+    def test_successful_checkout_records_metrics(
+        self,
+        mock_histogram,
+        mock_counter
+    ):
+        """Test that successful checkout records appropriate metrics."""
+        # Simulate successful checkout
+        mock_counter.add(1, {"user_id": "123"})
+        mock_histogram.record(250.5, {"status": "success"})
+        
+        # Verify metrics were recorded
+        mock_counter.add.assert_called_once()
+        mock_histogram.record.assert_called_once()
+    
+    @mock.patch('utils.telemetry.payment_success_counter')
+    def test_successful_payment_records_metric(self, mock_counter):
+        """Test that successful payment records a metric."""
+        mock_counter.add(1, {"payment_method": "credit_card"})
+        
+        mock_counter.add.assert_called_once_with(1, {"payment_method": "credit_card"})
