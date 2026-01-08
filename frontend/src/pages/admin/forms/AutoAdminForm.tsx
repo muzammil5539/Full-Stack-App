@@ -88,6 +88,28 @@ function isChoiceField(field: DrfField): boolean {
   return normalizeFieldType(field).includes('choice') && Array.isArray(field.choices)
 }
 
+function choicesLookNumeric(field: DrfField): boolean {
+  if (!Array.isArray(field.choices)) return false
+  for (const c of field.choices) {
+    if (c.value === '' || c.value === null || c.value === undefined) continue
+    if (typeof c.value === 'number') return true
+    if (typeof c.value === 'string' && /^\d+$/.test(c.value.trim())) return true
+    return false
+  }
+  return false
+}
+
+function coerceChoiceValue(field: DrfField, raw: FieldValue): unknown {
+  const s = typeof raw === 'string' ? raw : ''
+  if (s === '') return field.allow_null ? null : ''
+
+  if (choicesLookNumeric(field) && /^\d+$/.test(s.trim())) {
+    return Number.parseInt(s.trim(), 10)
+  }
+
+  return raw
+}
+
 function isNumericField(field: DrfField): 'int' | 'float' | 'decimal' | null {
   const t = normalizeFieldType(field)
   if (t === 'integer') return 'int'
@@ -126,7 +148,14 @@ function coerceOutgoing(field: DrfField, raw: FieldValue): unknown {
   }
 
   if (isMultiChoiceField(field)) {
-    return Array.isArray(raw) ? raw : []
+    const arr = Array.isArray(raw) ? raw : []
+    if (choicesLookNumeric(field)) {
+      return arr
+        .map((v) => String(v).trim())
+        .filter((v) => v.length > 0)
+        .map((v) => (/^\d+$/.test(v) ? Number.parseInt(v, 10) : v))
+    }
+    return arr
   }
 
   const numeric = isNumericField(field)
@@ -142,7 +171,7 @@ function coerceOutgoing(field: DrfField, raw: FieldValue): unknown {
   }
 
   if (isChoiceField(field)) {
-    return raw === '' ? (field.allow_null ? null : '') : raw
+    return coerceChoiceValue(field, raw)
   }
 
   const s = typeof raw === 'string' ? raw : ''

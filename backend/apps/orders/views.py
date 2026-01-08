@@ -7,6 +7,8 @@ from django.db import transaction
 from .models import Order, OrderItem, OrderStatusHistory
 from .serializers import OrderSerializer
 from apps.cart.models import Cart
+from apps.accounts.models import Address
+from apps.products.models import Product, ProductVariant
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -59,6 +61,18 @@ class OrderViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
             
             with transaction.atomic():
+                def parse_required_int(field_name: str) -> int:
+                    raw = request.data.get(field_name, None)
+                    if raw is None or raw == '':
+                        raise ValueError(f"{field_name} is required")
+                    try:
+                        value = int(raw)
+                    except (TypeError, ValueError):
+                        raise ValueError(f"{field_name} must be an integer")
+                    if value <= 0:
+                        raise ValueError(f"{field_name} must be a positive integer")
+                    return value
+
                 def parse_money(field_name: str) -> Decimal:
                     raw = request.data.get(field_name, 0)
                     if raw is None or raw == '':
@@ -72,15 +86,128 @@ class OrderViewSet(viewsets.ModelViewSet):
                     return value
 
                 try:
+                    shipping_address_id = parse_required_int('shipping_address')
+                    billing_address_id = parse_required_int('billing_address')
+
+                    if not Address.objects.filter(id=shipping_address_id, user=request.user).exists():
+                        return Response(
+                            {
+                                'error': 'Invalid checkout fields',
+                                'details': {'shipping_address': ['Invalid address']},
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    if not Address.objects.filter(id=billing_address_id, user=request.user).exists():
+                        return Response(
+                            {
+                                'error': 'Invalid checkout fields',
+                                'details': {'billing_address': ['Invalid address']},
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
                     shipping_cost = parse_money('shipping_cost')
                     tax = parse_money('tax')
                     discount = parse_money('discount')
                 except ValueError as e:
                     field = str(e).split(' ', 1)[0]
                     return Response(
-                        {'error': 'Invalid pricing', 'details': {field: [str(e)]}},
+                        {'error': 'Invalid checkout fields', 'details': {field: [str(e)]}},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+                items_qs = items_qs.select_related('product', 'variant')
+
+                # Stock enforcement (validate + decrement inside the transaction)
+                product_ids = {ci.product_id for ci in items_qs}
+                variant_ids = {ci.variant_id for ci in items_qs if ci.variant_id}
+
+                products_by_id = {
+                    p.id: p
+                    for p in Product.objects.select_for_update().filter(id__in=product_ids)
+                }
+                variants_by_id = {
+                    v.id: v
+                    for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+                }
+
+                stock_errors = []
+                for cart_item in items_qs:
+                    quantity = int(cart_item.quantity or 0)
+                    if quantity <= 0:
+                        stock_errors.append(
+                            {
+                                'cart_item_id': cart_item.id,
+                                'reason': 'invalid_quantity',
+                            }
+                        )
+                        continue
+
+                    if cart_item.variant_id:
+                        variant = variants_by_id.get(cart_item.variant_id)
+                        if not variant:
+                            stock_errors.append(
+                                {
+                                    'cart_item_id': cart_item.id,
+                                    'variant_id': cart_item.variant_id,
+                                    'reason': 'variant_not_found',
+                                }
+                            )
+                            continue
+                        available = int(variant.stock or 0)
+                        if quantity > available:
+                            stock_errors.append(
+                                {
+                                    'cart_item_id': cart_item.id,
+                                    'product_id': cart_item.product_id,
+                                    'variant_id': cart_item.variant_id,
+                                    'available': available,
+                                    'requested': quantity,
+                                    'reason': 'insufficient_stock',
+                                }
+                            )
+                    else:
+                        product = products_by_id.get(cart_item.product_id)
+                        if not product:
+                            stock_errors.append(
+                                {
+                                    'cart_item_id': cart_item.id,
+                                    'product_id': cart_item.product_id,
+                                    'reason': 'product_not_found',
+                                }
+                            )
+                            continue
+                        available = int(product.stock or 0)
+                        if quantity > available:
+                            stock_errors.append(
+                                {
+                                    'cart_item_id': cart_item.id,
+                                    'product_id': cart_item.product_id,
+                                    'available': available,
+                                    'requested': quantity,
+                                    'reason': 'insufficient_stock',
+                                }
+                            )
+
+                if stock_errors:
+                    return Response(
+                        {
+                            'error': 'Insufficient stock',
+                            'details': stock_errors,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                for cart_item in items_qs:
+                    quantity = int(cart_item.quantity)
+                    if cart_item.variant_id:
+                        variant = variants_by_id[cart_item.variant_id]
+                        variant.stock = int(variant.stock) - quantity
+                        variant.save(update_fields=['stock'])
+                    else:
+                        product = products_by_id[cart_item.product_id]
+                        product.stock = int(product.stock) - quantity
+                        product.save(update_fields=['stock'])
 
                 subtotal = sum((i.subtotal for i in items_qs), Decimal('0'))
                 if discount > (subtotal + shipping_cost + tax):
@@ -107,8 +234,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                 # Create order
                 order = Order.objects.create(
                     user=request.user,
-                    shipping_address_id=request.data.get('shipping_address'),
-                    billing_address_id=request.data.get('billing_address'),
+                    shipping_address_id=shipping_address_id,
+                    billing_address_id=billing_address_id,
                     subtotal=subtotal,
                     shipping_cost=shipping_cost,
                     tax=tax,

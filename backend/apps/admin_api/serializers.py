@@ -3,6 +3,8 @@ from django.utils.text import slugify
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
+import uuid
+
 from apps.accounts.models import User, Address, UserProfile
 from apps.cart.models import Cart, CartItem
 from apps.notifications.models import Notification
@@ -11,6 +13,25 @@ from apps.payments.models import Payment
 from apps.products.models import Brand, Category, Product, ProductImage, ProductVariant, ProductAttribute
 from apps.reviews.models import Review, ReviewImage
 from apps.wishlist.models import Wishlist, WishlistItem
+
+
+def _sku_prefix(value: str, fallback: str) -> str:
+    s = slugify(value or '')
+    s = ''.join(ch for ch in s if ch.isalnum())
+    return (s or fallback).upper()
+
+
+def _generate_unique_sku(model_cls, prefix: str, max_length: int = 100) -> str:
+    safe_prefix = (prefix or 'SKU')
+    # Suffix format: "-" + 8 hex chars => 9 chars
+    max_prefix_len = max(1, max_length - 9)
+    safe_prefix = safe_prefix[:max_prefix_len]
+
+    while True:
+        suffix = uuid.uuid4().hex[:8].upper()
+        candidate = f"{safe_prefix}-{suffix}"
+        if not model_cls.objects.filter(sku=candidate).exists():
+            return candidate
 
 
 class TokenAdminSerializer(serializers.ModelSerializer):
@@ -119,6 +140,12 @@ class BrandAdminSerializer(serializers.ModelSerializer):
             validated_data['slug'] = candidate
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        slug = validated_data.get('slug', None)
+        if slug is not None and not (slug or '').strip():
+            validated_data.pop('slug', None)
+        return super().update(instance, validated_data)
+
 
 class CategoryAdminSerializer(serializers.ModelSerializer):
     class Meta:
@@ -140,6 +167,12 @@ class CategoryAdminSerializer(serializers.ModelSerializer):
             validated_data['slug'] = candidate
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        slug = validated_data.get('slug', None)
+        if slug is not None and not (slug or '').strip():
+            validated_data.pop('slug', None)
+        return super().update(instance, validated_data)
+
 
 class ProductAdminSerializer(serializers.ModelSerializer):
     class Meta:
@@ -147,9 +180,15 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs = {
             'slug': {'required': False, 'allow_blank': True},
+            'sku': {'required': False, 'allow_blank': True},
         }
 
     def create(self, validated_data):
+        sku = (validated_data.get('sku') or '').strip()
+        if not sku:
+            prefix = _sku_prefix(validated_data.get('name', ''), 'PRODUCT')
+            validated_data['sku'] = _generate_unique_sku(Product, prefix, max_length=100)
+
         slug = (validated_data.get('slug') or '').strip()
         if not slug:
             base = slugify(validated_data.get('name', '') or '') or 'product'
@@ -160,6 +199,17 @@ class ProductAdminSerializer(serializers.ModelSerializer):
                 suffix += 1
             validated_data['slug'] = candidate
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        slug = validated_data.get('slug', None)
+        if slug is not None and not (slug or '').strip():
+            validated_data.pop('slug', None)
+
+        sku = validated_data.get('sku', None)
+        if sku is not None and not (sku or '').strip():
+            validated_data.pop('sku', None)
+
+        return super().update(instance, validated_data)
 
 
 class ProductImageAdminSerializer(serializers.ModelSerializer):
@@ -172,6 +222,24 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = '__all__'
+        extra_kwargs = {
+            'sku': {'required': False, 'allow_blank': True},
+        }
+
+    def create(self, validated_data):
+        sku = (validated_data.get('sku') or '').strip()
+        if not sku:
+            product = validated_data.get('product', None)
+            base_text = f"{getattr(product, 'sku', '')}-{validated_data.get('name', '')}-{validated_data.get('value', '')}"
+            prefix = _sku_prefix(base_text, 'VARIANT')
+            validated_data['sku'] = _generate_unique_sku(ProductVariant, prefix, max_length=100)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        sku = validated_data.get('sku', None)
+        if sku is not None and not (sku or '').strip():
+            validated_data.pop('sku', None)
+        return super().update(instance, validated_data)
 
 
 class ProductAttributeAdminSerializer(serializers.ModelSerializer):

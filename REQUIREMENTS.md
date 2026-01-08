@@ -13,6 +13,10 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
 - [x] Frontend: implement real checkout form (addresses + totals + confirmation).
 - [x] Frontend: show Profile/Settings/Logout for all authenticated users (not admin-only).
+- [ ] NFR (Backend): add throttling/rate limiting (DRF throttling) to protect auth/checkout/payment endpoints.
+- [x] NFR (Frontend): handle API error bodies consistently (parse JSON error payloads where available, not only raw text).
+- [x] Backend: enforce required checkout fields (shipping/billing addresses).
+- [x] Backend: stock enforcement at checkout (prevent oversell).
 
 ---
 
@@ -24,8 +28,8 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Support selecting cart items in API docs and requests (document `item_ids` for `POST /api/v1/orders/create_from_cart/`).
 - [x] Validate `item_ids` errors clearly (e.g., if IDs are invalid/not in user cart, return a specific error instead of collapsing into “Cart is empty”).
 - [x] Compute totals safely server-side (guard against negative `shipping_cost`, `tax`, `discount`, and enforce `total >= 0`).
-- [ ] Enforce required checkout fields (if your business rules require shipping/billing addresses, validate and error when missing).
-- [ ] Stock enforcement at checkout (verify stock for product/variant and prevent oversell).
+- [x] Enforce required checkout fields (if your business rules require shipping/billing addresses, validate and error when missing).
+- [x] Stock enforcement at checkout (verify stock for product/variant and prevent oversell).
 - [ ] Order detail endpoints should include consistent, complete data needed by UI (items, product snapshots, totals, addresses).
 - [ ] Order lifecycle beyond `cancel` (refund/return, status transitions like paid/shipped/delivered, admin update actions).
 
