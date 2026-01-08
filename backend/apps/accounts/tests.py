@@ -3,6 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from .models import Address
+
 
 class AddressOwnershipTests(APITestCase):
 	def setUp(self):
@@ -46,6 +48,144 @@ class AddressOwnershipTests(APITestCase):
 		detail_url = reverse('address-detail', args=[created_id])
 		resp2 = self.client.get(detail_url)
 		self.assertEqual(resp2.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class AddressDefaultBehaviorTests(APITestCase):
+	def setUp(self):
+		User = get_user_model()
+		self.user = User.objects.create_user(
+			username='user1',
+			email='user1@example.com',
+			password='pass12345',
+		)
+		self.client.force_authenticate(user=self.user)
+
+	def test_setting_default_unsets_other_defaults_same_type(self):
+		"""Test that setting an address as default unsets other defaults of same type"""
+		url = reverse('address-list')
+
+		# Create first shipping address as default
+		payload1 = {
+			'address_type': 'shipping',
+			'full_name': 'User One',
+			'phone': '1111111111',
+			'address_line1': '111 First St',
+			'city': 'City1',
+			'state': 'State1',
+			'postal_code': '11111',
+			'country': 'Country1',
+			'is_default': True,
+		}
+		resp1 = self.client.post(url, payload1, format='json')
+		self.assertEqual(resp1.status_code, status.HTTP_201_CREATED)
+		addr1_id = resp1.data['id']
+
+		# Create second shipping address as default
+		payload2 = {
+			'address_type': 'shipping',
+			'full_name': 'User Two',
+			'phone': '2222222222',
+			'address_line1': '222 Second St',
+			'city': 'City2',
+			'state': 'State2',
+			'postal_code': '22222',
+			'country': 'Country2',
+			'is_default': True,
+		}
+		resp2 = self.client.post(url, payload2, format='json')
+		self.assertEqual(resp2.status_code, status.HTTP_201_CREATED)
+
+		# First address should no longer be default
+		addr1 = Address.objects.get(id=addr1_id)
+		self.assertFalse(addr1.is_default)
+
+		# Second address should be default
+		addr2_id = resp2.data['id']
+		addr2 = Address.objects.get(id=addr2_id)
+		self.assertTrue(addr2.is_default)
+
+	def test_different_address_types_can_both_be_default(self):
+		"""Test that shipping and billing can both be default simultaneously"""
+		url = reverse('address-list')
+
+		# Create shipping address as default
+		payload_shipping = {
+			'address_type': 'shipping',
+			'full_name': 'User One',
+			'phone': '1111111111',
+			'address_line1': '111 Shipping St',
+			'city': 'City1',
+			'state': 'State1',
+			'postal_code': '11111',
+			'country': 'Country1',
+			'is_default': True,
+		}
+		resp1 = self.client.post(url, payload_shipping, format='json')
+		self.assertEqual(resp1.status_code, status.HTTP_201_CREATED)
+		ship_id = resp1.data['id']
+
+		# Create billing address as default
+		payload_billing = {
+			'address_type': 'billing',
+			'full_name': 'User One',
+			'phone': '1111111111',
+			'address_line1': '111 Billing St',
+			'city': 'City1',
+			'state': 'State1',
+			'postal_code': '11111',
+			'country': 'Country1',
+			'is_default': True,
+		}
+		resp2 = self.client.post(url, payload_billing, format='json')
+		self.assertEqual(resp2.status_code, status.HTTP_201_CREATED)
+		bill_id = resp2.data['id']
+
+		# Both should still be default
+		ship_addr = Address.objects.get(id=ship_id)
+		bill_addr = Address.objects.get(id=bill_id)
+		self.assertTrue(ship_addr.is_default)
+		self.assertTrue(bill_addr.is_default)
+
+	def test_updating_address_to_default_unsets_others(self):
+		"""Test that updating an address to default works correctly"""
+		# Create two shipping addresses, neither default
+		addr1 = Address.objects.create(
+			user=self.user,
+			address_type='shipping',
+			full_name='User One',
+			phone='1111111111',
+			address_line1='111 First St',
+			city='City1',
+			state='State1',
+			postal_code='11111',
+			country='Country1',
+			is_default=False,
+		)
+		addr2 = Address.objects.create(
+			user=self.user,
+			address_type='shipping',
+			full_name='User Two',
+			phone='2222222222',
+			address_line1='222 Second St',
+			city='City2',
+			state='State2',
+			postal_code='22222',
+			country='Country2',
+			is_default=True,
+		)
+
+		# Update first address to be default
+		url = reverse('address-detail', args=[addr1.id])
+		response = self.client.patch(url, {'is_default': True}, format='json')
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+		# Refresh from DB
+		addr1.refresh_from_db()
+		addr2.refresh_from_db()
+
+		# addr1 should now be default, addr2 should not
+		self.assertTrue(addr1.is_default)
+		self.assertFalse(addr2.is_default)
 
 
 class UserProfileOwnershipTests(APITestCase):

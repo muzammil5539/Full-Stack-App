@@ -49,6 +49,16 @@ class Address(TimeStampedModel):
     def __str__(self):
         return f"{self.user.email} - {self.address_type}"
 
+    def save(self, *args, **kwargs):
+        # If this address is being set as default, unset other defaults of same type for this user
+        if self.is_default:
+            Address.objects.filter(
+                user=self.user,
+                address_type=self.address_type,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
 
 class UserProfile(TimeStampedModel):
     """Extended user profile."""

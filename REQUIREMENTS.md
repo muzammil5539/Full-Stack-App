@@ -47,16 +47,16 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Ensure image URLs are usable by frontend (absolute URLs or documented base handling).
 
 **Reviews**
-- [ ] Allow authenticated users to manage their review safely (update/delete rules and object-level permissions).
+- [x] Allow authenticated users to manage their review safely (update/delete rules and object-level permissions).
 - [x] Moderation/admin approval flow (currently API filters `is_approved=True` but does not expose an approval workflow).
 
 **Notifications**
-- [ ] Decide whether notifications are user-writable; if not, lock down create/update/delete (currently `ModelViewSet` allows full CRUD).
-- [ ] Add ordering on notification querysets to avoid pagination warnings and to show newest first.
+- [x] Decide whether notifications are user-writable; if not, lock down create/update/delete (currently `ModelViewSet` allows full CRUD).
+- [x] Add ordering on notification querysets to avoid pagination warnings and to show newest first.
 
 **Auth / Accounts**
 - [x] Addresses: enforce `user=request.user` on create/update (do not accept arbitrary `user` in payload).
-- [ ] Addresses: default address behavior (only one default per user per `address_type`, auto-unset others).
+- [x] Addresses: default address behavior (only one default per user per `address_type`, auto-unset others).
 - [ ] Password reset / change password.
 - [ ] Email verification flow (field exists in UI response, but no verify endpoint/flow).
 
