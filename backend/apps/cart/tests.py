@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
+from unittest import mock
 
 from apps.cart.models import Cart, CartItem
 from apps.products.models import Category, Product
@@ -83,3 +84,53 @@ class CartQuantityEndpointsTests(TestCase):
 		res = self.client.post('/api/v1/cart/clear/', {}, format='json')
 		self.assertEqual(res.status_code, 200)
 		self.assertTrue(Cart.objects.filter(user=self.user).exists())
+
+
+class CartBusinessMetricsTests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		User = get_user_model()
+		self.user = User.objects.create_user(
+			email='cart-metrics@example.com',
+			username='cartmetrics',
+			password='password123',
+		)
+		self.client.force_authenticate(user=self.user)
+
+		self.category = Category.objects.create(
+			name='Cat',
+			slug='cat-metrics',
+			description='',
+			is_active=True,
+		)
+		self.product = Product.objects.create(
+			name='Product',
+			slug='product-metrics',
+			description='desc',
+			category=self.category,
+			brand=None,
+			sku='SKU-CART-METRICS-1',
+			price=Decimal('10.00'),
+			stock=10,
+			is_active=True,
+		)
+
+	@mock.patch('apps.cart.views.cart_add_counter')
+	def test_add_item_records_metric(self, mock_counter):
+		res = self.client.post(
+			'/api/v1/cart/add_item/',
+			{'product': self.product.id, 'quantity': 2},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 200)
+		mock_counter.add.assert_called()
+
+	@mock.patch('apps.cart.views.record_span_error')
+	def test_remove_item_not_found_records_span_error(self, mock_record_error):
+		res = self.client.post(
+			'/api/v1/cart/remove_item/',
+			{'item_id': 999999},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 404)
+		mock_record_error.assert_called_once()

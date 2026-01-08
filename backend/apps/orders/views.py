@@ -1,4 +1,6 @@
 from decimal import Decimal, InvalidOperation
+import time
+from typing import Optional
 
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -12,6 +14,15 @@ from apps.accounts.models import Address
 from apps.products.models import Product, ProductVariant
 from utils.decimal_utils import validate_money_field, round_currency
 from utils.logging_utils import log_checkout_failure, log_stock_insufficient, log_order_status_change
+from utils.otel_utils import add_span_event, record_span_error, set_span_attributes
+from utils.telemetry import (
+    api_error_counter,
+    checkout_completed_counter,
+    checkout_duration_histogram,
+    checkout_failed_counter,
+    checkout_started_counter,
+    order_created_counter,
+)
 
 
 class CheckoutRateThrottle(UserRateThrottle):
@@ -44,6 +55,67 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], throttle_classes=[CheckoutRateThrottle])
     def create_from_cart(self, request):
         """Create order from cart with idempotency support."""
+        start_time = time.monotonic()
+        base_attrs = {
+            "endpoint": "orders.create_from_cart",
+        }
+
+        try:
+            checkout_started_counter.add(1, base_attrs)
+        except Exception:
+            pass
+
+        set_span_attributes({"app.operation": "checkout.create_from_cart", "user.id": request.user.id})
+
+        def _record_failure(reason: str, extra_attrs: Optional[dict] = None):
+            attrs = dict(base_attrs)
+            attrs["reason"] = reason
+            if extra_attrs:
+                attrs.update(extra_attrs)
+
+            try:
+                checkout_failed_counter.add(1, attrs)
+            except Exception:
+                pass
+            try:
+                api_error_counter.add(1, attrs)
+            except Exception:
+                pass
+            record_span_error("checkout_failed", reason, attrs)
+            try:
+                checkout_duration_histogram.record(
+                    (time.monotonic() - start_time) * 1000.0,
+                    {"status": "failed", "reason": reason},
+                )
+            except Exception:
+                pass
+
+        def _record_success(order_id: Optional[int] = None, idempotent: bool = False):
+            attrs = dict(base_attrs)
+            attrs["idempotent"] = bool(idempotent)
+            if order_id is not None:
+                attrs["order_id"] = int(order_id)
+
+            try:
+                checkout_completed_counter.add(1, attrs)
+            except Exception:
+                pass
+            try:
+                if not idempotent and order_id is not None:
+                    order_created_counter.add(1, {"endpoint": "orders.create_from_cart"})
+            except Exception:
+                pass
+            add_span_event("checkout.completed", {"order_id": order_id, "idempotent": idempotent})
+            if order_id is not None:
+                set_span_attributes({"order.id": int(order_id)})
+            try:
+                checkout_duration_histogram.record(
+                    (time.monotonic() - start_time) * 1000.0,
+                    {"status": "success"},
+                )
+            except Exception:
+                pass
+
         # Check for idempotency key
         idempotency_key = request.headers.get('Idempotency-Key') or request.data.get('idempotency_key')
         
@@ -57,6 +129,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             if existing_order:
                 # Return existing order (idempotent response)
                 serializer = OrderSerializer(existing_order)
+                _record_success(order_id=existing_order.id, idempotent=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
         
         try:
@@ -66,11 +139,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             items_qs = cart.items.all()
             if isinstance(item_ids, list):
                 if len(item_ids) == 0:
+                    _record_failure("no_items_selected")
                     return Response({'error': 'No items selected'}, status=status.HTTP_400_BAD_REQUEST)
 
                 try:
                     normalized_ids = [int(v) for v in item_ids]
                 except (TypeError, ValueError):
+                    _record_failure("invalid_item_ids")
                     return Response(
                         {'error': 'Invalid item_ids', 'detail': 'item_ids must be a list of integers'},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -78,6 +153,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                 normalized_ids = [i for i in normalized_ids if i > 0]
                 if not normalized_ids:
+                    _record_failure("no_items_selected")
                     return Response({'error': 'No items selected'}, status=status.HTTP_400_BAD_REQUEST)
 
                 existing_ids = set(
@@ -85,6 +161,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
                 missing_ids = sorted(set(normalized_ids) - existing_ids)
                 if missing_ids:
+                    _record_failure("some_items_missing")
                     return Response(
                         {
                             'error': 'Some items not found in cart',
@@ -96,6 +173,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 items_qs = items_qs.filter(id__in=normalized_ids)
 
             if not items_qs.exists():
+                _record_failure("cart_empty")
                 return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
             
             with transaction.atomic():
@@ -128,6 +206,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     billing_address_id = parse_required_int('billing_address')
 
                     if not Address.objects.filter(id=shipping_address_id, user=request.user).exists():
+                        _record_failure("invalid_shipping_address")
                         return Response(
                             {
                                 'error': 'Invalid checkout fields',
@@ -136,6 +215,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
                     if not Address.objects.filter(id=billing_address_id, user=request.user).exists():
+                        _record_failure("invalid_billing_address")
                         return Response(
                             {
                                 'error': 'Invalid checkout fields',
@@ -149,6 +229,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     discount = parse_money('discount')
                 except ValueError as e:
                     field = str(e).split(' ', 1)[0]
+                    _record_failure("invalid_checkout_fields", {"field": field})
                     return Response(
                         {'error': 'Invalid checkout fields', 'details': {field: [str(e)]}},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -272,6 +353,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                 subtotal = sum((i.subtotal for i in items_qs), Decimal('0'))
                 if discount > (subtotal + shipping_cost + tax):
+                    _record_failure("discount_exceeds_total")
                     return Response(
                         {
                             'error': 'Invalid pricing',
@@ -285,6 +367,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 # Compute total server-side with proper rounding (never trust client)
                 total = round_currency(subtotal + shipping_cost + tax - discount)
                 if total < 0:
+                    _record_failure("negative_total")
                     return Response(
                         {
                             'error': 'Invalid pricing',
@@ -328,9 +411,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                 items_qs.delete()
             
             serializer = OrderSerializer(order)
+            _record_success(order_id=order.id, idempotent=False)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Cart.DoesNotExist:
+            _record_failure("cart_not_found")
             return Response(
                 {'error': 'Cart not found'},
                 status=status.HTTP_404_NOT_FOUND

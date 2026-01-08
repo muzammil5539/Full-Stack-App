@@ -156,4 +156,18 @@ CORS_ALLOWED_ORIGINS = [
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # OpenTelemetry settings
-OTEL_ENABLED = os.getenv('OTEL_ENABLED', 'true').lower() == 'true'
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    return default
+
+
+OTEL_ENABLED = _env_bool('OTEL_ENABLED', True)

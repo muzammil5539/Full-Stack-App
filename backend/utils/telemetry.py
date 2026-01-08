@@ -79,6 +79,22 @@ OTEL_ENVIRONMENT = _getenv('OTEL_ENVIRONMENT', 'development')
 OTEL_SERVICE_NAMESPACE = os.getenv('OTEL_SERVICE_NAMESPACE')
 OTEL_CONSOLE_EXPORT = _getenv('OTEL_CONSOLE_EXPORT', 'false').lower() == 'true'
 OTEL_RESOURCE_ATTRIBUTES = os.getenv('OTEL_RESOURCE_ATTRIBUTES', '')
+OTEL_METRICS_EXPORTER = _getenv('OTEL_METRICS_EXPORTER', 'otlp')
+try:
+    OTEL_METRICS_EXPORT_INTERVAL_MS = int(_getenv('OTEL_METRICS_EXPORT_INTERVAL_MS', '60000'))
+except ValueError:
+    OTEL_METRICS_EXPORT_INTERVAL_MS = 60000
+
+
+def _parse_exporters(raw: str) -> set[str]:
+    exporters = {p.strip().lower() for p in (raw or '').split(',') if p.strip()}
+    if not exporters:
+        return set()
+    if 'none' in exporters:
+        return set()
+    if 'all' in exporters:
+        return {'otlp', 'console'}
+    return exporters
 
 
 def create_resource() -> Resource:
@@ -143,22 +159,34 @@ def configure_metrics(resource: Resource) -> MeterProvider:
     """Configure metrics collection with OTLP exporter."""
     current_meter_provider = metrics.get_meter_provider()
 
+    exporters = _parse_exporters(OTEL_METRICS_EXPORTER)
+
     # Create metric readers
     readers = []
-    
-    # Add OTLP metric exporter for production
-    try:
-        otlp_metric_exporter = OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
-        otlp_reader = PeriodicExportingMetricReader(otlp_metric_exporter, export_interval_millis=60000)
-        readers.append(otlp_reader)
-    except Exception as e:
-        print(f"Warning: Failed to configure OTLP metric exporter: {e}")
-    
+
+    # Add OTLP metric exporter
+    if 'otlp' in exporters or not exporters:
+        try:
+            otlp_metric_exporter = OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
+            otlp_reader = PeriodicExportingMetricReader(
+                otlp_metric_exporter,
+                export_interval_millis=OTEL_METRICS_EXPORT_INTERVAL_MS,
+            )
+            readers.append(otlp_reader)
+        except Exception as e:
+            print(f"Warning: Failed to configure OTLP metric exporter: {e}")
+
     # Add console exporter for development/debugging
-    if OTEL_CONSOLE_EXPORT:
-        console_metric_exporter = ConsoleMetricExporter()
-        console_reader = PeriodicExportingMetricReader(console_metric_exporter, export_interval_millis=60000)
-        readers.append(console_reader)
+    if OTEL_CONSOLE_EXPORT or 'console' in exporters:
+        try:
+            console_metric_exporter = ConsoleMetricExporter()
+            console_reader = PeriodicExportingMetricReader(
+                console_metric_exporter,
+                export_interval_millis=OTEL_METRICS_EXPORT_INTERVAL_MS,
+            )
+            readers.append(console_reader)
+        except Exception as e:
+            print(f"Warning: Failed to configure console metric exporter: {e}")
     
     # If a MeterProvider is already set, we cannot replace it (set-once).
     if isinstance(current_meter_provider, MeterProvider):
@@ -294,6 +322,12 @@ order_cancelled_counter = _meter.create_counter(
 )
 
 # Payment metrics
+payment_created_counter = _meter.create_counter(
+    "payments.created",
+    description="Number of payments created",
+    unit="1",
+)
+
 payment_success_counter = _meter.create_counter(
     "payments.success",
     description="Number of successful payments",

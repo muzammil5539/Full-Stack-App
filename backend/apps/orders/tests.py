@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
+from unittest import mock
 
 from apps.cart.models import Cart, CartItem
 from apps.products.models import Category, Product, Brand, ProductVariant
@@ -238,3 +239,51 @@ class CreateFromCartPricingValidationTests(TestCase):
 		self.assertEqual(res.status_code, 400)
 		self.assertEqual(Order.objects.count(), 0)
 		self.assertTrue(self.cart.items.filter(id=self.item.id).exists())
+
+	@mock.patch('apps.orders.views.checkout_started_counter')
+	@mock.patch('apps.orders.views.checkout_completed_counter')
+	@mock.patch('apps.orders.views.order_created_counter')
+	@mock.patch('apps.orders.views.checkout_duration_histogram')
+	def test_checkout_metrics_recorded_on_success(
+		self,
+		mock_duration,
+		mock_order_created,
+		mock_completed,
+		mock_started,
+	):
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': [self.item.id],
+				'shipping_address': self.shipping_address.id,
+				'billing_address': self.billing_address.id,
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 201)
+		mock_started.add.assert_called()
+		mock_completed.add.assert_called()
+		mock_order_created.add.assert_called()
+		mock_duration.record.assert_called()
+
+	@mock.patch('apps.orders.views.checkout_failed_counter')
+	@mock.patch('apps.orders.views.api_error_counter')
+	@mock.patch('apps.orders.views.checkout_duration_histogram')
+	def test_checkout_metrics_recorded_on_failure(self, mock_duration, mock_api_err, mock_failed):
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': [self.item.id],
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		mock_failed.add.assert_called()
+		mock_api_err.add.assert_called()
+		mock_duration.record.assert_called()

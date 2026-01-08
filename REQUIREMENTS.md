@@ -86,26 +86,26 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Add custom spans for critical business operations (checkout, payment processing, order creation).
 - [x] Configure trace exporter (OTLP, Jaeger, or Zipkin) for distributed tracing.
 - [x] Implement metrics collection (request duration, error rates, cart operations, order completions).
-- [ ] Add custom metrics for business events (products added to cart, checkout started/completed, payment success/failure).
-- [ ] Configure metrics exporter (Prometheus, OTLP) with appropriate aggregation.
-- [ ] Implement structured logging with trace context injection (correlate logs with traces).
-- [ ] Add resource attributes (service name, version, environment, instance ID).
-- [ ] Configure sampling strategy (probabilistic/rate-based) for production environments.
-- [ ] Add baggage propagation for cross-service context (user_id, session_id, tenant_id if multi-tenant).
-- [ ] Instrument critical error paths with span events and exception tracking.
-- [ ] Add span attributes for key business entities (product_id, order_id, user_id, payment_method).
-- [ ] Configure OTEL environment variables for backend service (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT).
-- [ ] Add health check endpoint that reports telemetry pipeline status.
+- [x] Add custom metrics for business events (products added to cart, checkout started/completed, payment success/failure).
+- [x] Configure metrics exporter (Prometheus, OTLP) with appropriate aggregation.
+- [x] Implement structured logging with trace context injection (correlate logs with traces).
+- [x] Add resource attributes (service name, version, environment, instance ID).
+- [x] Configure sampling strategy (probabilistic/rate-based) for production environments.
+- [x] Add baggage propagation for cross-service context (user_id, session_id, tenant_id if multi-tenant).
+- [x] Instrument critical error paths with span events and exception tracking.
+- [x] Add span attributes for key business entities (product_id, order_id, user_id, payment_method).
+- [x] Configure OTEL environment variables for backend service (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT).
+- [x] Add health check endpoint that reports telemetry pipeline status.
 
 **OpenTelemetry (Local Dev / Tooling)**
-- [ ] Add local OpenTelemetry Collector config (otel-collector-config.yaml) with OTLP ingest over gRPC/HTTP.
-- [ ] Add docker-compose setup to run collector + Jaeger and/or Zipkin via profiles.
-- [ ] Support switching trace backend via env var (Jaeger vs Zipkin vs remote OTLP) without code changes.
+- [x] Add local OpenTelemetry Collector config (otel-collector-config.yaml) with OTLP ingest over gRPC/HTTP.
+- [x] Add docker-compose setup to run collector + Jaeger and/or Zipkin via profiles.
+- [x] Support switching trace backend via env var (Jaeger vs Zipkin vs remote OTLP) without code changes.
 
 **OpenTelemetry (Backend) – NFRs**
-- [ ] NFR: Provide a reproducible local observability setup (one command to start collector + UI).
-- [ ] NFR: Default local telemetry should not require any external SaaS.
-- [ ] NFR: Document how to run collector, Jaeger/Zipkin UIs, and required backend env vars.
+- [x] NFR: Provide a reproducible local observability setup (one command to start collector + UI).
+- [x] NFR: Default local telemetry should not require any external SaaS.
+- [x] NFR: Document how to run collector, Jaeger/Zipkin UIs, and required backend env vars.
 
 **OpenTelemetry (Admin Portal - Backend)**
 - [ ] Add dedicated tracing for all admin API endpoints (CRUD operations on all models).
@@ -135,7 +135,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Documentation**
 - [ ] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
 - [ ] Define webhook plan (API docs say “Coming soon”).
-- [ ] Add docs: local OpenTelemetry Collector + Jaeger/Zipkin docker-compose usage and backend env vars.
+- [x] Add docs: local OpenTelemetry Collector + Jaeger/Zipkin docker-compose usage and backend env vars.
 
 **Testing**
 - [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cancel rules, cart quantity behavior.

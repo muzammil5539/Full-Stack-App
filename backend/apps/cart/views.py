@@ -1,8 +1,14 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from opentelemetry import trace
+
 from .models import Cart, CartItem
 from .serializers import CartSerializer, CartItemSerializer
+
+from utils.otel_utils import add_span_event, record_span_error, set_span_attributes
+from utils.telemetry import api_error_counter, cart_add_counter, cart_remove_counter
 
 
 class CartViewSet(viewsets.ModelViewSet):
@@ -22,7 +28,27 @@ class CartViewSet(viewsets.ModelViewSet):
         cart, created = Cart.objects.get_or_create(user=request.user)
         product_id = request.data.get('product')
         variant_id = request.data.get('variant')
-        quantity = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (TypeError, ValueError):
+            api_error_counter.add(1, {"endpoint": "cart.add_item", "reason": "invalid_quantity"})
+            record_span_error("validation_error", "Invalid quantity", {"endpoint": "cart.add_item"})
+            return Response({'error': 'Invalid quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if quantity <= 0:
+            api_error_counter.add(1, {"endpoint": "cart.add_item", "reason": "invalid_quantity"})
+            record_span_error("validation_error", "Invalid quantity", {"endpoint": "cart.add_item"})
+            return Response({'error': 'Invalid quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
+        set_span_attributes(
+            {
+                "app.operation": "cart.add_item",
+                "user.id": request.user.id,
+                "product.id": int(product_id) if str(product_id).isdigit() else product_id,
+                "variant.id": int(variant_id) if str(variant_id).isdigit() else variant_id,
+                "cart.item.quantity": quantity,
+            }
+        )
         
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
@@ -34,6 +60,15 @@ class CartViewSet(viewsets.ModelViewSet):
         if not created:
             cart_item.quantity += quantity
             cart_item.save()
+
+        cart_add_counter.add(
+            quantity,
+            {
+                "endpoint": "cart.add_item",
+                "has_variant": bool(variant_id),
+            },
+        )
+        add_span_event("cart.item_added", {"quantity": quantity})
         
         serializer = CartSerializer(cart)
         return Response(serializer.data)
@@ -44,11 +79,22 @@ class CartViewSet(viewsets.ModelViewSet):
         item_id = request.data.get('item_id')
         try:
             cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+            removed_quantity = int(cart_item.quantity or 0)
             cart_item.delete()
+
+            cart_remove_counter.add(
+                max(removed_quantity, 1),
+                {
+                    "endpoint": "cart.remove_item",
+                },
+            )
+            add_span_event("cart.item_removed", {"quantity": removed_quantity})
             cart = Cart.objects.get(user=request.user)
             serializer = CartSerializer(cart)
             return Response(serializer.data)
         except CartItem.DoesNotExist:
+            api_error_counter.add(1, {"endpoint": "cart.remove_item", "reason": "item_not_found"})
+            record_span_error("not_found", "Cart item not found", {"endpoint": "cart.remove_item"})
             return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=['post'])
