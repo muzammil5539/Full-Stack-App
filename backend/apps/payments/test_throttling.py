@@ -1,0 +1,19 @@
+from django.test import TestCase
+
+from apps.payments.views import PaymentViewSet, PaymentRateThrottle
+
+
+class PaymentThrottlingTests(TestCase):
+    def test_create_for_order_has_throttle(self):
+        """Test that create_for_order action has throttling configured"""
+        viewset = PaymentViewSet()
+        action_method = viewset.create_for_order
+        # Check if throttle_classes attribute exists on the action
+        self.assertTrue(hasattr(action_method, 'kwargs'))
+        throttle_classes = action_method.kwargs.get('throttle_classes', [])
+        self.assertIn(PaymentRateThrottle, throttle_classes)
+
+    def test_payment_rate_throttle_scope(self):
+        """Test that PaymentRateThrottle has correct scope"""
+        throttle = PaymentRateThrottle()
+        self.assertEqual(throttle.scope, 'payment')

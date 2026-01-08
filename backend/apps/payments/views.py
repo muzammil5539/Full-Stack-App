@@ -3,10 +3,15 @@ import uuid
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 
 from apps.orders.models import Order
 from .models import Payment
 from .serializers import PaymentSerializer, CreatePaymentSerializer
+
+
+class PaymentRateThrottle(UserRateThrottle):
+    scope = 'payment'
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -16,7 +21,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Payment.objects.filter(order__user=self.request.user)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], throttle_classes=[PaymentRateThrottle])
     def create_for_order(self, request):
         serializer = CreatePaymentSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

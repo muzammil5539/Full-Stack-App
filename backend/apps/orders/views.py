@@ -3,12 +3,17 @@ from decimal import Decimal, InvalidOperation
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from django.db import transaction
 from .models import Order, OrderItem, OrderStatusHistory
 from .serializers import OrderSerializer
 from apps.cart.models import Cart
 from apps.accounts.models import Address
 from apps.products.models import Product, ProductVariant
+
+
+class CheckoutRateThrottle(UserRateThrottle):
+    scope = 'checkout'
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -18,7 +23,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).prefetch_related('items')
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], throttle_classes=[CheckoutRateThrottle])
     def create_from_cart(self, request):
         """Create order from cart."""
         try:

@@ -1,0 +1,19 @@
+from django.test import TestCase
+
+from apps.orders.views import OrderViewSet, CheckoutRateThrottle
+
+
+class CheckoutThrottlingTests(TestCase):
+    def test_create_from_cart_has_throttle(self):
+        """Test that create_from_cart action has throttling configured"""
+        viewset = OrderViewSet()
+        action_method = viewset.create_from_cart
+        # Check if throttle_classes attribute exists on the action
+        self.assertTrue(hasattr(action_method, 'kwargs'))
+        throttle_classes = action_method.kwargs.get('throttle_classes', [])
+        self.assertIn(CheckoutRateThrottle, throttle_classes)
+
+    def test_checkout_rate_throttle_scope(self):
+        """Test that CheckoutRateThrottle has correct scope"""
+        throttle = CheckoutRateThrottle()
+        self.assertEqual(throttle.scope, 'checkout')

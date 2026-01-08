@@ -13,7 +13,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Frontend: implement real product detail page (fetch by slug + add-to-cart + variants).
 - [x] Frontend: implement real checkout form (addresses + totals + confirmation).
 - [x] Frontend: show Profile/Settings/Logout for all authenticated users (not admin-only).
-- [ ] NFR (Backend): add throttling/rate limiting (DRF throttling) to protect auth/checkout/payment endpoints.
+- [x] NFR (Backend): add throttling/rate limiting (DRF throttling) to protect auth/checkout/payment endpoints.
 - [x] NFR (Frontend): handle API error bodies consistently (parse JSON error payloads where available, not only raw text).
 - [x] Backend: enforce required checkout fields (shipping/billing addresses).
 - [x] Backend: stock enforcement at checkout (prevent oversell).
@@ -64,7 +64,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 
 **Security**
 - [ ] Do not trust client-provided money fields by default; validate/compute totals on server.
-- [ ] Add throttling/rate limiting (API docs mention rate limits, but DRF throttling is not configured in settings).
+- [x] Add throttling/rate limiting (API docs mention rate limits, but DRF throttling is not configured in settings).
 - [ ] Ensure object-level permission checks everywhere (especially admin APIs and any write endpoints).
 - [x] Prevent cross-user data writes (e.g., addresses, reviews) even if client sends foreign IDs.
 
@@ -79,6 +79,48 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Observability**
 - [ ] Structured logging for checkout/payment failures; consistent error shapes.
 - [ ] Capture request context for failures (user id, order id, payment id where relevant).
+
+**OpenTelemetry (Backend)**
+- [ ] Install and configure OpenTelemetry SDK for Python (Django instrumentation).
+- [ ] Auto-instrument HTTP requests (incoming/outgoing), database queries, and cache operations.
+- [ ] Add custom spans for critical business operations (checkout, payment processing, order creation).
+- [ ] Configure trace exporter (OTLP, Jaeger, or Zipkin) for distributed tracing.
+- [ ] Implement metrics collection (request duration, error rates, cart operations, order completions).
+- [ ] Add custom metrics for business events (products added to cart, checkout started/completed, payment success/failure).
+- [ ] Configure metrics exporter (Prometheus, OTLP) with appropriate aggregation.
+- [ ] Implement structured logging with trace context injection (correlate logs with traces).
+- [ ] Add resource attributes (service name, version, environment, instance ID).
+- [ ] Configure sampling strategy (probabilistic/rate-based) for production environments.
+- [ ] Add baggage propagation for cross-service context (user_id, session_id, tenant_id if multi-tenant).
+- [ ] Instrument critical error paths with span events and exception tracking.
+- [ ] Add span attributes for key business entities (product_id, order_id, user_id, payment_method).
+- [ ] Configure OTEL environment variables for backend service (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT).
+- [ ] Add health check endpoint that reports telemetry pipeline status.
+
+**OpenTelemetry (Admin Portal - Backend)**
+- [ ] Add dedicated tracing for all admin API endpoints (CRUD operations on all models).
+- [ ] Track admin authentication and permission checks with span attributes (admin_user_id, permission_name, resource_type).
+- [ ] Add custom spans for bulk operations (bulk delete, bulk update) with count metrics.
+- [ ] Instrument admin OPTIONS requests (used by auto-admin form generation) with response schema details.
+- [ ] Track admin data modifications with before/after state in span events (audit trail correlation).
+- [ ] Add metrics for admin operations (create/update/delete counts per model, operation duration).
+- [ ] Implement rate limiting metrics for admin endpoints (throttle hits, blocked requests).
+- [ ] Add span attributes for admin actions (model_name, action_type, object_id, affected_count).
+- [ ] Track failed admin operations with error categories (permission denied, validation error, not found).
+- [ ] Add metrics for admin session activity (active sessions, login/logout events, session duration).
+
+**OpenTelemetry (Admin Portal - Frontend)**
+- [ ] Instrument admin portal navigation and page transitions (list → detail → edit flows).
+- [ ] Add custom spans for admin form submissions with validation outcomes (success, field errors).
+- [ ] Track admin CRUD operations with user journey context (model_type, operation, success/failure).
+- [ ] Add metrics for admin UI interactions (form opens, field changes, save attempts, cancellations).
+- [ ] Implement error tracking for admin form validation failures and API rejections.
+- [ ] Track admin bulk actions in UI (select all, bulk delete confirmations) with affected item counts.
+- [ ] Add performance marks for admin page load times (list pages, detail pages, form rendering).
+- [ ] Instrument admin search/filter operations with query parameters and result counts.
+- [ ] Add span attributes for admin context (admin_user_id, current_model, current_view, selected_items).
+- [ ] Track admin OPTIONS-based form generation timing and cache effectiveness.
+- [ ] Add metrics for admin productivity (actions per session, time between operations, most-used models).
 
 **Documentation**
 - [ ] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
@@ -159,6 +201,23 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Performance**
 - [ ] Add pagination/search UI for product lists when product count grows (backend already supports pagination).
 - [ ] Avoid redundant refetches in dev/prod (be mindful of StrictMode double-invocations).
+
+**OpenTelemetry (Frontend)**
+- [ ] Install and configure OpenTelemetry SDK for Browser (Web instrumentation).
+- [ ] Auto-instrument fetch/XHR requests to capture API calls with timing and status.
+- [ ] Add custom spans for user interactions (add to cart, checkout flow, payment submission).
+- [ ] Configure trace exporter (OTLP/HTTP) pointing to collector or backend.
+- [ ] Implement browser metrics (page load time, resource timing, long tasks, user interactions).
+- [ ] Add custom metrics for business events (product views, cart actions, checkout steps, errors).
+- [ ] Configure context propagation headers (traceparent, tracestate) for backend correlation.
+- [ ] Add resource attributes (service name, version, browser info, user agent).
+- [ ] Implement error tracking with span exception events (network errors, validation failures, crashes).
+- [ ] Add span attributes for user actions (page_url, user_id if authenticated, action_type, product_id).
+- [ ] Configure sampling strategy for frontend telemetry (client-side sampling to reduce data volume).
+- [ ] Implement session tracking with consistent session_id across traces.
+- [ ] Add Web Vitals tracking (LCP, FID, CLS, TTFB) as metrics.
+- [ ] Handle trace context across SPA route transitions properly.
+- [ ] Add performance marks for critical user journey milestones (checkout_started, payment_initiated, order_confirmed).
 
 **Type Safety & Maintainability**
 - [ ] Replace remaining broad `unknown`/`Record<string, unknown>` types with concrete API models where feasible.

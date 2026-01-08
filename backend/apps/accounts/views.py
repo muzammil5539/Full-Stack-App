@@ -3,13 +3,19 @@ from django.utils.text import slugify
 from rest_framework import permissions, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from .models import User, Address, UserProfile
 from .serializers import UserSerializer, AddressSerializer, UserProfileSerializer
 
 
+class AuthRateThrottle(AnonRateThrottle):
+    scope = 'auth'
+
+
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
         email = (request.data.get('email') or '').strip().lower()
