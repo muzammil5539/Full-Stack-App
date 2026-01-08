@@ -36,12 +36,22 @@ class Order(TimeStampedModel):
     # Additional info
     notes = models.TextField(blank=True)
     tracking_number = models.CharField(max_length=255, blank=True)
+    idempotency_key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     
     class Meta:
         db_table = 'orders'
         verbose_name = 'Order'
         verbose_name_plural = 'Orders'
         ordering = ['-created_at']
+        # Idempotency key should be unique per user
+        unique_together = [['user', 'idempotency_key']]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'idempotency_key'],
+                condition=models.Q(idempotency_key__isnull=False),
+                name='unique_user_idempotency_key'
+            )
+        ]
     
     def __str__(self):
         return f"Order {self.order_number}"

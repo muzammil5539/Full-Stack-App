@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
-from .models import User, Address, UserProfile
+from .models import User, Address, UserProfile, EmailVerificationToken
 from .serializers import UserSerializer, AddressSerializer, UserProfileSerializer
 
 
@@ -42,12 +42,17 @@ class RegisterView(APIView):
         user.set_password(password)
         user.save()
 
+        # Create verification token
+        verification_token = EmailVerificationToken.create_token(user)
+
         token, _ = Token.objects.get_or_create(user=user)
 
         return Response(
             {
                 'token': token.key,
                 'user': UserSerializer(user).data,
+                'verification_token': verification_token.token,  # In production, send via email
+                'message': 'Registration successful. Please verify your email.',
             },
             status=status.HTTP_201_CREATED,
         )
@@ -83,6 +88,56 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
 
         return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def send_verification_email(self, request):
+        """Send email verification token (resend)."""
+        user = request.user
+        
+        if user.is_verified:
+            return Response({'message': 'Email is already verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Invalidate old tokens
+        EmailVerificationToken.objects.filter(user=user, is_used=False).update(is_used=True)
+        
+        # Create new token
+        verification_token = EmailVerificationToken.create_token(user)
+        
+        # In production, send this via email
+        return Response({
+            'message': 'Verification email sent.',
+            'verification_token': verification_token.token  # Remove in production
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def verify_email(self, request):
+        """Verify email with token."""
+        token_string = request.data.get('token', '').strip()
+        
+        if not token_string:
+            return Response({'error': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = EmailVerificationToken.objects.get(token=token_string)
+        except EmailVerificationToken.DoesNotExist:
+            return Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not token.is_valid():
+            return Response({'error': 'Token has expired or already been used.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mark token as used
+        token.is_used = True
+        token.save()
+
+        # Mark user as verified
+        user = token.user
+        user.is_verified = True
+        user.save()
+
+        return Response({
+            'message': 'Email verified successfully.',
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
 
 
 class AddressViewSet(viewsets.ModelViewSet):

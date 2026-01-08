@@ -58,27 +58,27 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Addresses: enforce `user=request.user` on create/update (do not accept arbitrary `user` in payload).
 - [x] Addresses: default address behavior (only one default per user per `address_type`, auto-unset others).
 - [x] Password reset / change password.
-- [ ] Email verification flow (field exists in UI response, but no verify endpoint/flow).
+- [x] Email verification flow (field exists in UI response, but no verify endpoint/flow).
 
 ### NFRs (Non‑Functional Requirements)
 
 **Security**
-- [ ] Do not trust client-provided money fields by default; validate/compute totals on server.
+- [x] Do not trust client-provided money fields by default; validate/compute totals on server.
 - [x] Add throttling/rate limiting (API docs mention rate limits, but DRF throttling is not configured in settings).
 - [x] Ensure object-level permission checks everywhere (especially admin APIs and any write endpoints).
 - [x] Prevent cross-user data writes (e.g., addresses, reviews) even if client sends foreign IDs.
 
 **Reliability & Data Integrity**
-- [ ] Make checkout atomic and consistent under concurrency (stock checks + order creation + cart mutation).
+- [x] Make checkout atomic and consistent under concurrency (stock checks + order creation + cart mutation).
 - [x] Consistent Decimal rounding rules (currency precision) and input validation.
-- [ ] Payments/checkout idempotency strategy (avoid duplicate payments/orders from retries).
+- [x] Payments/checkout idempotency strategy (avoid duplicate payments/orders from retries).
 
 **Performance**
 - [x] Avoid N+1 queries in serializers (use `select_related`/`prefetch_related` systematically for list/detail endpoints).
 
 **Observability**
-- [ ] Structured logging for checkout/payment failures; consistent error shapes.
-- [ ] Capture request context for failures (user id, order id, payment id where relevant).
+- [x] Structured logging for checkout/payment failures; consistent error shapes.
+- [x] Capture request context for failures (user id, order id, payment id where relevant).
 
 **OpenTelemetry (Backend)**
 - [ ] Install and configure OpenTelemetry SDK for Python (Django instrumentation).

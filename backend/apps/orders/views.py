@@ -10,6 +10,8 @@ from .serializers import OrderSerializer
 from apps.cart.models import Cart
 from apps.accounts.models import Address
 from apps.products.models import Product, ProductVariant
+from utils.decimal_utils import validate_money_field, round_currency
+from utils.logging_utils import log_checkout_failure, log_stock_insufficient, log_order_status_change
 
 
 class CheckoutRateThrottle(UserRateThrottle):
@@ -41,7 +43,22 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], throttle_classes=[CheckoutRateThrottle])
     def create_from_cart(self, request):
-        """Create order from cart."""
+        """Create order from cart with idempotency support."""
+        # Check for idempotency key
+        idempotency_key = request.headers.get('Idempotency-Key') or request.data.get('idempotency_key')
+        
+        if idempotency_key:
+            # Check if order with this idempotency key already exists
+            existing_order = Order.objects.filter(
+                user=request.user,
+                idempotency_key=idempotency_key
+            ).first()
+            
+            if existing_order:
+                # Return existing order (idempotent response)
+                serializer = OrderSerializer(existing_order)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        
         try:
             cart = Cart.objects.get(user=request.user)
 
@@ -95,16 +112,16 @@ class OrderViewSet(viewsets.ModelViewSet):
                     return value
 
                 def parse_money(field_name: str) -> Decimal:
+                    """Parse and validate money field from request data."""
                     raw = request.data.get(field_name, 0)
                     if raw is None or raw == '':
                         raw = 0
                     try:
-                        value = Decimal(str(raw)).quantize(Decimal('0.01'))
-                    except (InvalidOperation, ValueError, TypeError):
-                        raise ValueError(f"{field_name} must be a valid decimal")
-                    if value < 0:
-                        raise ValueError(f"{field_name} must be non-negative")
-                    return value
+                        # Use the centralized validation utility
+                        value = validate_money_field(raw, field_name, allow_zero=True)
+                        return value
+                    except (ValueError, TypeError) as e:
+                        raise ValueError(f"{field_name}: {str(e)}")
 
                 try:
                     shipping_address_id = parse_required_int('shipping_address')
@@ -177,6 +194,14 @@ class OrderViewSet(viewsets.ModelViewSet):
                             continue
                         available = int(variant.stock or 0)
                         if quantity > available:
+                            # Log insufficient stock
+                            log_stock_insufficient(
+                                user_id=request.user.id,
+                                product_id=cart_item.product_id,
+                                variant_id=cart_item.variant_id,
+                                requested=quantity,
+                                available=available
+                            )
                             stock_errors.append(
                                 {
                                     'cart_item_id': cart_item.id,
@@ -200,6 +225,14 @@ class OrderViewSet(viewsets.ModelViewSet):
                             continue
                         available = int(product.stock or 0)
                         if quantity > available:
+                            # Log insufficient stock
+                            log_stock_insufficient(
+                                user_id=request.user.id,
+                                product_id=cart_item.product_id,
+                                variant_id=None,
+                                requested=quantity,
+                                available=available
+                            )
                             stock_errors.append(
                                 {
                                     'cart_item_id': cart_item.id,
@@ -211,6 +244,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                             )
 
                 if stock_errors:
+                    # Log overall checkout failure
+                    log_checkout_failure(
+                        user_id=request.user.id,
+                        error_type='insufficient_stock',
+                        error_message='One or more items have insufficient stock',
+                        context={'stock_errors': stock_errors}
+                    )
                     return Response(
                         {
                             'error': 'Insufficient stock',
@@ -242,7 +282,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                total = subtotal + shipping_cost + tax - discount
+                # Compute total server-side with proper rounding (never trust client)
+                total = round_currency(subtotal + shipping_cost + tax - discount)
                 if total < 0:
                     return Response(
                         {
@@ -262,7 +303,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                     tax=tax,
                     discount=discount,
                     total=total,
-                    notes=request.data.get('notes', '')
+                    notes=request.data.get('notes', ''),
+                    idempotency_key=idempotency_key  # Save idempotency key
                 )
                 
                 # Create order items from cart
@@ -340,6 +382,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         old_status = order.status
         order.status = new_status
         order.save()
+        
+        # Log status change
+        log_order_status_change(
+            user_id=order.user_id,
+            order_id=order.id,
+            old_status=old_status,
+            new_status=new_status,
+            changed_by=request.user.id
+        )
         
         OrderStatusHistory.objects.create(
             order=order,

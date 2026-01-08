@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
 from apps.orders.models import Order
+from utils.logging_utils import log_payment_failure
 from .models import Payment
 from .serializers import PaymentSerializer, CreatePaymentSerializer
 
@@ -28,6 +29,21 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'], throttle_classes=[PaymentRateThrottle])
     def create_for_order(self, request):
+        """Create payment for order with idempotency support."""
+        # Check for idempotency key
+        idempotency_key = request.headers.get('Idempotency-Key') or request.data.get('idempotency_key')
+        
+        if idempotency_key:
+            # Check if payment with this idempotency key already exists
+            existing_payment = Payment.objects.filter(
+                order__user=request.user,
+                idempotency_key=idempotency_key
+            ).first()
+            
+            if existing_payment:
+                # Return existing payment (idempotent response)
+                return Response(PaymentSerializer(existing_payment).data, status=status.HTTP_200_OK)
+        
         serializer = CreatePaymentSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
@@ -36,6 +52,15 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Object-level permission check: ensure user owns the order
         if order.user != request.user:
+            # Log unauthorized payment attempt
+            log_payment_failure(
+                user_id=request.user.id,
+                order_id=order.id,
+                payment_id=None,
+                error_type='permission_denied',
+                error_message='User attempted to create payment for another user\'s order',
+                context={'attempted_order_user_id': order.user_id}
+            )
             return Response(
                 {'error': 'You do not have permission to create payment for this order'},
                 status=status.HTTP_403_FORBIDDEN
@@ -47,6 +72,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             transaction_id=f"TX-{uuid.uuid4().hex}",
             amount=order.total,
             status='pending',
+            idempotency_key=idempotency_key,  # Save idempotency key
         )
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)

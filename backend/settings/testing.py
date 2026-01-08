@@ -28,3 +28,17 @@ MIGRATION_MODULES = DisableMigrations()
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
 ]
+
+# Disable throttling for tests
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': {
+        'auth': '10000/day',      # Set very high rate for testing to avoid initialization errors
+        'checkout': '10000/day',
+        'payment': '10000/day',
+        'anon': '10000/day',
+        'user': '10000/day',
+    },
+}
+

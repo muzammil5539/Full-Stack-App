@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+import secrets
 from utils.models import TimeStampedModel
 
 
@@ -70,6 +73,34 @@ class UserProfile(TimeStampedModel):
         db_table = 'user_profiles'
         verbose_name = 'User Profile'
         verbose_name_plural = 'User Profiles'
+
+
+class EmailVerificationToken(TimeStampedModel):
+    """Email verification token model."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        db_table = 'email_verification_tokens'
+        verbose_name = 'Email Verification Token'
+        verbose_name_plural = 'Email Verification Tokens'
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.token[:8]}..."
+    
+    @classmethod
+    def create_token(cls, user):
+        """Create a new verification token for a user."""
+        token = secrets.token_urlsafe(32)
+        expires_at = timezone.now() + timedelta(hours=24)
+        return cls.objects.create(user=user, token=token, expires_at=expires_at)
+    
+    def is_valid(self):
+        """Check if token is valid (not expired and not used)."""
+        return not self.is_used and timezone.now() < self.expires_at
+
     
     def __str__(self):
         return f"{self.user.email}'s profile"

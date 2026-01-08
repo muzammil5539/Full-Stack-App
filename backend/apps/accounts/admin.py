@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Address, UserProfile
+from .models import User, Address, UserProfile, EmailVerificationToken
 
 
 @admin.register(User)
@@ -26,3 +26,12 @@ class AddressAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'date_of_birth']
     search_fields = ['user__email']
+
+
+@admin.register(EmailVerificationToken)
+class EmailVerificationTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'token', 'expires_at', 'is_used', 'created_at']
+    list_filter = ['is_used', 'expires_at']
+    search_fields = ['user__email', 'token']
+    readonly_fields = ['token', 'created_at', 'updated_at']
+
