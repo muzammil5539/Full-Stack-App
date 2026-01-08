@@ -74,3 +74,61 @@ class AdminSkuAutoGenerationTests(TestCase):
         variant = ProductVariant.objects.get(id=res.data['id'])
         self.assertTrue(variant.sku)
         self.assertNotEqual(variant.sku.strip(), '')
+
+
+class AdminDocsEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            username='admin_docs',
+            email='admin_docs@example.com',
+            password='password123',
+        )
+        self.user = User.objects.create_user(
+            username='user_docs',
+            email='user_docs@example.com',
+            password='password123',
+        )
+
+    def test_docs_list_requires_admin(self):
+        self.client.force_authenticate(user=self.user)
+        res = self.client.get('/docs/')
+        self.assertEqual(res.status_code, 403)
+
+    def test_docs_list_returns_docs_for_admin(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/docs/')
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertIn('docs', res.data)
+        self.assertIsInstance(res.data['docs'], list)
+
+        # Repo ships at least API.md / DATABASE.md under backend/docs
+        if res.data['docs']:
+            self.assertIn('name', res.data['docs'][0])
+            self.assertIn('title', res.data['docs'][0])
+
+    def test_docs_detail_requires_admin(self):
+        self.client.force_authenticate(user=self.user)
+        res = self.client.get('/docs/API.md/')
+        self.assertEqual(res.status_code, 403)
+
+    def test_docs_detail_returns_markdown_content_for_admin(self):
+        self.client.force_authenticate(user=self.admin)
+
+        list_res = self.client.get('/docs/')
+        self.assertEqual(list_res.status_code, 200, list_res.data)
+        docs = list_res.data.get('docs', [])
+        self.assertTrue(len(docs) > 0, 'Expected at least one doc in backend/docs')
+
+        name = docs[0]['name']
+        res = self.client.get(f'/docs/{name}/')
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(res.data.get('name'), name)
+        self.assertEqual(res.data.get('content_type'), 'text/markdown')
+        self.assertTrue(isinstance(res.data.get('content'), str))
+        self.assertTrue(len(res.data.get('content')) > 0)
+
+    def test_docs_detail_blocks_path_traversal(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/docs/../settings.py/')
+        self.assertEqual(res.status_code, 404)

@@ -16,6 +16,7 @@ import LoginPage from '../pages/account/LoginPage'
 import RegisterPage from '../pages/account/RegisterPage'
 import SettingsPage from '../pages/account/SettingsPage'
 import AdminPage from '../pages/admin/AdminPage'
+import AdminDocsPage from '../pages/admin/AdminDocsPage'
 import AdminModelAddPage from '../pages/admin/AdminModelAddPage'
 import AdminModelChangeListPage from '../pages/admin/AdminModelChangeListPage'
 import AdminModelEditPage from '../pages/admin/AdminModelEditPage'
@@ -36,6 +37,7 @@ export default function AppRouter() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="admin/docs/*" element={<AdminDocsPage />} />
           <Route path="admin/:app/:model/add/*" element={<AdminModelAddPage />} />
           <Route path="admin/:app/:model/:id/change/*" element={<AdminModelEditPage />} />
           <Route path="admin/:app/:model/*" element={<AdminModelChangeListPage />} />

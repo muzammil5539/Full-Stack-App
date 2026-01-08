@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import AdminRequired from '../../admin/AdminRequired'
 import { findAdminResource } from '../../admin/resources'
+import { adminDelete } from '../../api/adminCrud'
 import ErrorMessage from '../../shared/ui/ErrorMessage'
 import AutoAdminForm from './forms/AutoAdminForm'
 
@@ -12,6 +13,8 @@ export default function AdminModelEditPage() {
   const app = String(params.app ?? '')
   const model = String(params.model ?? '')
   const id = String(params.id ?? '')
+
+  const navigate = useNavigate()
 
   const resource = useMemo(() => findAdminResource(app, model), [app, model])
 
@@ -33,12 +36,32 @@ export default function AdminModelEditPage() {
         {!resource ? (
           <ErrorMessage message="Unknown admin resource." />
         ) : (
-          <AutoAdminForm
-            apiPath={resource.apiPath}
-            mode="edit"
-            id={id}
-            onDone={() => window.location.reload()}
-          />
+          <div className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-xs text-slate-600 dark:text-slate-300">
+                Actions affect <span className="font-mono">{resource.apiPath}{id}/</span>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-rose-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-rose-700"
+                onClick={async () => {
+                  const ok = window.confirm('Delete this object? This cannot be undone.')
+                  if (!ok) return
+                  await adminDelete(resource.apiPath, id)
+                  navigate(`/admin/${app}/${model}/`)
+                }}
+              >
+                Delete
+              </button>
+            </div>
+
+            <AutoAdminForm
+              apiPath={resource.apiPath}
+              mode="edit"
+              id={id}
+              onDone={() => window.location.reload()}
+            />
+          </div>
         )}
       </div>
     </AdminRequired>

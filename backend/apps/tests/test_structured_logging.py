@@ -220,3 +220,23 @@ class StructuredLoggingTests(TestCase):
         self.assertIn("trace", payload)
         self.assertIsNotNone(payload["trace"]["trace_id"])
         self.assertIsNotNone(payload["trace"]["span_id"])
+
+    @patch('utils.logging_utils.logger')
+    def test_logs_include_trace_context_when_no_span_active(self, mock_logger):
+        from utils.logging_utils import log_checkout_failure
+
+        log_checkout_failure(
+            user_id=self.user.id,
+            error_type="TestError",
+            error_message="boom",
+            context={"x": "y"},
+        )
+
+        self.assertTrue(mock_logger.error.called)
+        message = mock_logger.error.call_args[0][0]
+        payload = json.loads(message.split(": ", 1)[1])
+        self.assertIn("trace", payload)
+        self.assertIsNotNone(payload["trace"]["trace_id"])
+        self.assertIsNotNone(payload["trace"]["span_id"])
+        self.assertEqual(len(payload["trace"]["trace_id"]), 32)
+        self.assertEqual(len(payload["trace"]["span_id"]), 16)

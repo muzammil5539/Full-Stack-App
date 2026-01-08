@@ -1,4 +1,4 @@
-import { getJson, postJson } from './http'
+import { deleteJson, getJson, postJson } from './http'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -82,4 +82,8 @@ export async function adminPatch<T>(apiPath: string, id: string | number, payloa
 
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
+}
+
+export async function adminDelete<T = unknown>(apiPath: string, id: string | number): Promise<T> {
+  return deleteJson<T>(`${API_BASE_URL}${apiPath}${id}/`)
 }

@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from django.conf import settings
+from rest_framework import permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+
+def _docs_dir() -> Path:
+    return Path(settings.BASE_DIR) / 'docs'
+
+
+def _is_safe_doc_name(name: str) -> bool:
+    if not name:
+        return False
+    if '/' in name or '\\' in name:
+        return False
+    if name.startswith('.'):
+        return False
+    return True
+
+
+class AdminDocsListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        docs_dir = _docs_dir()
+        if not docs_dir.exists() or not docs_dir.is_dir():
+            return Response({'docs': []})
+
+        docs: list[dict[str, str]] = []
+        for path in sorted(docs_dir.glob('*.md')):
+            docs.append(
+                {
+                    'name': path.name,
+                    'title': path.stem.replace('_', ' ').replace('-', ' ').title(),
+                }
+            )
+
+        return Response({'docs': docs})
+
+
+class AdminDocsDetailView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, name: str):
+        if not _is_safe_doc_name(name):
+            return Response({'detail': 'Not found.'}, status=404)
+
+        docs_dir = _docs_dir()
+        path = docs_dir / name
+        try:
+            resolved = path.resolve(strict=True)
+        except FileNotFoundError:
+            return Response({'detail': 'Not found.'}, status=404)
+
+        # Ensure no path traversal even if filesystem has symlinks.
+        try:
+            resolved.relative_to(docs_dir.resolve())
+        except Exception:
+            return Response({'detail': 'Not found.'}, status=404)
+
+        if resolved.suffix.lower() != '.md':
+            return Response({'detail': 'Not found.'}, status=404)
+
+        content = resolved.read_text(encoding='utf-8', errors='replace')
+        return Response(
+            {
+                'name': resolved.name,
+                'title': resolved.stem.replace('_', ' ').replace('-', ' ').title(),
+                'content_type': 'text/markdown',
+                'content': content,
+            }
+        )

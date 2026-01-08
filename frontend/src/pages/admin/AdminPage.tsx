@@ -31,6 +31,15 @@ function AdminDashboard() {
             Manage all models using the frontend admin routes.
           </div>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/docs"
+            className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            Docs
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-5">

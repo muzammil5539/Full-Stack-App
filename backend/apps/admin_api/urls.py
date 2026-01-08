@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -24,6 +25,8 @@ from .views import (
     WishlistAdminViewSet,
     WishlistItemAdminViewSet,
 )
+
+from .docs_views import AdminDocsDetailView, AdminDocsListView
 
 router = DefaultRouter()
 
@@ -68,3 +71,10 @@ router.register(r'wishlist/wishlists', WishlistAdminViewSet, basename='admin-wis
 router.register(r'wishlist/wishlistitems', WishlistItemAdminViewSet, basename='admin-wishlistitem')
 
 urlpatterns = router.urls
+
+docs_urlpatterns = [
+    path('docs/', AdminDocsListView.as_view(), name='admin-docs-list'),
+    path('docs/<str:name>/', AdminDocsDetailView.as_view(), name='admin-docs-detail'),
+]
+
+urlpatterns = docs_urlpatterns + urlpatterns

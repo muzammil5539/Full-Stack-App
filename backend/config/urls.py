@@ -11,6 +11,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Admin-only documentation
+    path('docs/', include('apps.admin_api.docs_urls')),
     
     # API endpoints
     path('api/v1/accounts/', include('apps.accounts.urls')),

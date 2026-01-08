@@ -136,6 +136,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
 - [ ] Define webhook plan (API docs say “Coming soon”).
 - [x] Add docs: local OpenTelemetry Collector + Jaeger/Zipkin docker-compose usage and backend env vars.
+- [x] Backend: serve documentation from `/docs/` (admin-only; reads markdown from `backend/docs/`).
 
 **Testing**
 - [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cancel rules, cart quantity behavior.
@@ -147,8 +148,14 @@ Use this short list for day-to-day progress. The full checklist continues below.
 
 ### FRs (Functional Requirements)
 
+**Admin Portal**
+- [x] Admin Portal: add Docs page (`/admin/docs`) that is only visible/accessible to admins.
+- [x] Admin Portal: enable Delete actions for admin CRUD (products/categories/etc), not only edit.
+- [ ] Frontend: document frontend routes/components and surface them in the admin portal docs view.
+
 **Home / Landing**
 - [ ] Replace starter home content with real storefront entry points (featured products, categories/brands, or promotions).
+- [ ] Modernize landing page UI (layout, spacing, typography) without changing features.
 
 **Products / Browse**
 - [ ] Add search input UI (wired to backend `search=`) and persist query in URL.
@@ -156,6 +163,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Add filter UI for category/brand (wired to backend query params).
 - [ ] Add pagination UI (page/page_size) and show current/next/prev.
 - [ ] Improve product cards (primary image, sale badge, compare price) where available.
+- [ ] Modernize products listing UI (grid responsiveness, card hierarchy, loading states).
 
 **Product Detail**
 - [x] Implement real product detail screen (fetch by slug, show images/description/variants/attributes).
@@ -163,6 +171,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Reviews list UI on product detail.
 - [x] Review submission UI (rating + title + comment) for authenticated users.
 - [x] Review edit/delete UI for the user’s own review (if backend supports it).
+- [ ] Modernize product detail UI (media gallery layout, variant selection UX, spacing).
 
 **Checkout**
 - [x] Replace “starter” checkout with a real checkout form (shipping address selection/entry, billing address, notes).

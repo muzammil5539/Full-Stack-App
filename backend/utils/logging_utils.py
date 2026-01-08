@@ -1,6 +1,8 @@
 """Structured logging utilities for critical operations."""
 import logging
 import json
+import secrets
+from contextvars import ContextVar
 from typing import Any, Dict, Optional
 
 from opentelemetry import trace
@@ -8,11 +10,27 @@ from opentelemetry import trace
 logger = logging.getLogger('ecommerce')
 
 
+_fallback_trace_context: ContextVar[Optional[Dict[str, str]]] = ContextVar(
+    "ecommerce_fallback_trace_context",
+    default=None,
+)
+
+
 def _get_trace_context() -> Dict[str, Optional[str]]:
     span = trace.get_current_span()
     ctx = span.get_span_context() if span is not None else None
     if ctx is None or not getattr(ctx, "is_valid", False):
-        return {"trace_id": None, "span_id": None}
+        existing = _fallback_trace_context.get()
+        if existing is not None:
+            return {"trace_id": existing["trace_id"], "span_id": existing["span_id"]}
+
+        # Generate a deterministic (per-request/execution-context) fallback.
+        generated = {
+            "trace_id": secrets.token_hex(16),
+            "span_id": secrets.token_hex(8),
+        }
+        _fallback_trace_context.set(generated)
+        return {"trace_id": generated["trace_id"], "span_id": generated["span_id"]}
     return {
         "trace_id": f"{ctx.trace_id:032x}",
         "span_id": f"{ctx.span_id:016x}",
