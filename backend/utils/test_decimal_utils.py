@@ -1,0 +1,79 @@
+from decimal import Decimal, InvalidOperation
+from django.test import TestCase
+
+from utils.decimal_utils import (
+    validate_currency_decimal,
+    validate_money_field,
+    round_currency,
+    calculate_total,
+)
+
+
+class DecimalUtilsTests(TestCase):
+    def test_validate_currency_decimal_valid(self):
+        """Test validation of valid currency decimals"""
+        result = validate_currency_decimal(Decimal('10.50'))
+        self.assertEqual(result, Decimal('10.50'))
+        
+        result = validate_currency_decimal(Decimal('100'))
+        self.assertEqual(result, Decimal('100.00'))
+
+    def test_validate_currency_decimal_rounds(self):
+        """Test that currency decimals are rounded correctly"""
+        result = validate_currency_decimal(Decimal('10.555'))
+        self.assertEqual(result, Decimal('10.56'))
+        
+        result = validate_currency_decimal(Decimal('10.554'))
+        self.assertEqual(result, Decimal('10.55'))
+
+    def test_validate_currency_decimal_negative(self):
+        """Test that negative values raise error"""
+        with self.assertRaises(ValueError):
+            validate_currency_decimal(Decimal('-10.00'))
+
+    def test_validate_money_field_valid(self):
+        """Test validation of valid money fields"""
+        result = validate_money_field(Decimal('10.50'), max_value=Decimal('100'))
+        self.assertEqual(result, Decimal('10.50'))
+
+    def test_validate_money_field_exceeds_max(self):
+        """Test that values exceeding max raise error"""
+        with self.assertRaises(ValueError):
+            validate_money_field(Decimal('150.00'), max_value=Decimal('100'))
+
+    def test_validate_money_field_negative(self):
+        """Test that negative values raise error"""
+        with self.assertRaises(ValueError):
+            validate_money_field(Decimal('-10.00'))
+
+    def test_round_currency(self):
+        """Test currency rounding"""
+        self.assertEqual(round_currency(Decimal('10.555')), Decimal('10.56'))
+        self.assertEqual(round_currency(Decimal('10.554')), Decimal('10.55'))
+        self.assertEqual(round_currency(Decimal('10.545')), Decimal('10.55'))
+        self.assertEqual(round_currency(Decimal('10.5')), Decimal('10.50'))
+
+    def test_calculate_total(self):
+        """Test total calculation"""
+        items = [
+            Decimal('10.50'),
+            Decimal('20.25'),
+            Decimal('5.00'),
+        ]
+        total = calculate_total(items)
+        self.assertEqual(total, Decimal('35.75'))
+
+    def test_calculate_total_with_rounding(self):
+        """Test that calculate_total rounds final result"""
+        items = [
+            Decimal('10.555'),
+            Decimal('20.555'),
+        ]
+        total = calculate_total(items)
+        # 10.555 + 20.555 = 31.11, rounded to 31.11
+        self.assertEqual(total, Decimal('31.11'))
+
+    def test_calculate_total_empty_list(self):
+        """Test calculate_total with empty list"""
+        total = calculate_total([])
+        self.assertEqual(total, Decimal('0.00'))

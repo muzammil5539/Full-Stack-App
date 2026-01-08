@@ -21,7 +21,13 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).select_related(
+        # Admins can see all orders, regular users see only their own
+        if self.request.user.is_staff:
+            queryset = Order.objects.all()
+        else:
+            queryset = Order.objects.filter(user=self.request.user)
+        
+        return queryset.select_related(
             'user',
             'shipping_address',
             'billing_address'
@@ -307,6 +313,47 @@ class OrderViewSet(viewsets.ModelViewSet):
             status='cancelled',
             notes=request.data.get('notes', 'Cancelled by customer')
         )
+        
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def update_status(self, request, pk=None):
+        """Update order status (admin only)."""
+        order = self.get_object()
+        new_status = request.data.get('status', '').strip().lower()
+        notes = request.data.get('notes', '')
+        
+        valid_statuses = dict(Order.STATUS_CHOICES)
+        if new_status not in valid_statuses:
+            return Response(
+                {'error': f'Invalid status. Must be one of: {", ".join(valid_statuses.keys())}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_status == order.status:
+            return Response(
+                {'error': 'Order is already in this status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        old_status = order.status
+        order.status = new_status
+        order.save()
+        
+        OrderStatusHistory.objects.create(
+            order=order,
+            status=new_status,
+            notes=notes or f'Status changed from {old_status} to {new_status}'
+        )
+        
+        # Update associated payment status based on order status
+        if new_status == 'confirmed' and order.payments.exists():
+            order.payments.update(status='completed')
+        elif new_status == 'cancelled' and order.payments.filter(status='pending').exists():
+            order.payments.filter(status='pending').update(status='cancelled')
+        elif new_status == 'refunded' and order.payments.exists():
+            order.payments.update(status='refunded')
         
         serializer = OrderSerializer(order)
         return Response(serializer.data)

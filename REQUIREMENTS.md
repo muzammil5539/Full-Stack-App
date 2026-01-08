@@ -31,11 +31,11 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Enforce required checkout fields (if your business rules require shipping/billing addresses, validate and error when missing).
 - [x] Stock enforcement at checkout (verify stock for product/variant and prevent oversell).
 - [x] Order detail endpoints should include consistent, complete data needed by UI (items, product snapshots, totals, addresses).
-- [ ] Order lifecycle beyond `cancel` (refund/return, status transitions like paid/shipped/delivered, admin update actions).
+- [x] Order lifecycle beyond `cancel` (refund/return, status transitions like paid/shipped/delivered, admin update actions).
 
 **Payments**
 - [x] Payment creation/processing API (currently payments are read-only; no “pay for order” flow).
-- [ ] Payment status updates tied to order state (paid/failed/refunded) + audit trail.
+- [x] Payment status updates tied to order state (paid/failed/refunded) + audit trail.
 
 **Cart**
 - [x] Update quantity / set quantity endpoint (currently only add/increment, remove, clear).
@@ -57,7 +57,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Auth / Accounts**
 - [x] Addresses: enforce `user=request.user` on create/update (do not accept arbitrary `user` in payload).
 - [x] Addresses: default address behavior (only one default per user per `address_type`, auto-unset others).
-- [ ] Password reset / change password.
+- [x] Password reset / change password.
 - [ ] Email verification flow (field exists in UI response, but no verify endpoint/flow).
 
 ### NFRs (Non‑Functional Requirements)
@@ -65,12 +65,12 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Security**
 - [ ] Do not trust client-provided money fields by default; validate/compute totals on server.
 - [x] Add throttling/rate limiting (API docs mention rate limits, but DRF throttling is not configured in settings).
-- [ ] Ensure object-level permission checks everywhere (especially admin APIs and any write endpoints).
+- [x] Ensure object-level permission checks everywhere (especially admin APIs and any write endpoints).
 - [x] Prevent cross-user data writes (e.g., addresses, reviews) even if client sends foreign IDs.
 
 **Reliability & Data Integrity**
 - [ ] Make checkout atomic and consistent under concurrency (stock checks + order creation + cart mutation).
-- [ ] Consistent Decimal rounding rules (currency precision) and input validation.
+- [x] Consistent Decimal rounding rules (currency precision) and input validation.
 - [ ] Payments/checkout idempotency strategy (avoid duplicate payments/orders from retries).
 
 **Performance**

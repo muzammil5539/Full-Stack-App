@@ -19,7 +19,12 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Payment.objects.filter(order__user=self.request.user)
+        # Object-level permission: users can only see their own payments
+        return Payment.objects.filter(order__user=self.request.user).select_related(
+            'order__user',
+            'order__shipping_address',
+            'order__billing_address'
+        ).order_by('-created_at', '-id')
 
     @action(detail=False, methods=['post'], throttle_classes=[PaymentRateThrottle])
     def create_for_order(self, request):
@@ -28,6 +33,13 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
         order: Order = serializer.validated_data['order']
         payment_method: str = serializer.validated_data['payment_method']
+
+        # Object-level permission check: ensure user owns the order
+        if order.user != request.user:
+            return Response(
+                {'error': 'You do not have permission to create payment for this order'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         payment = Payment.objects.create(
             order=order,

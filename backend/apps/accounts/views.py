@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from rest_framework import permissions, status, viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -59,6 +60,29 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id).order_by('id')
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Change user password."""
+        user = request.user
+        old_password = request.data.get('old_password', '')
+        new_password = request.data.get('new_password', '')
+
+        if not old_password:
+            return Response({'old_password': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+        if not new_password:
+            return Response({'new_password': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.check_password(old_password):
+            return Response({'old_password': ['Current password is incorrect.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 8:
+            return Response({'new_password': ['Password must be at least 8 characters.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
 
 
 class AddressViewSet(viewsets.ModelViewSet):
