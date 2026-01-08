@@ -3,6 +3,9 @@ from rest_framework.test import APIClient
 from unittest.mock import patch
 import json
 
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+
 from apps.accounts.models import User, Address
 from apps.products.models import Category, Product
 from apps.cart.models import Cart, CartItem
@@ -184,3 +187,36 @@ class StructuredLoggingTests(TestCase):
                 self.assertIn('changed_by_user_id', log_message)
         
         self.assertTrue(found_status_change_log, "Order status change log not found")
+
+    @patch('utils.logging_utils.logger')
+    def test_logs_include_trace_context_when_span_active(self, mock_logger):
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+        exporter = InMemorySpanExporter()
+        provider = trace.get_tracer_provider()
+        if isinstance(provider, TracerProvider):
+            provider.add_span_processor(SimpleSpanProcessor(exporter))
+        else:
+            tracer_provider = TracerProvider()
+            tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
+            trace.set_tracer_provider(tracer_provider)
+
+        tracer = trace.get_tracer(__name__)
+
+        from utils.logging_utils import log_checkout_failure
+
+        with tracer.start_as_current_span("test.span"):
+            log_checkout_failure(
+                user_id=self.user.id,
+                error_type="TestError",
+                error_message="boom",
+                context={"x": "y"},
+            )
+
+        self.assertTrue(mock_logger.error.called)
+        message = mock_logger.error.call_args[0][0]
+        payload = json.loads(message.split(": ", 1)[1])
+        self.assertIn("trace", payload)
+        self.assertIsNotNone(payload["trace"]["trace_id"])
+        self.assertIsNotNone(payload["trace"]["span_id"])

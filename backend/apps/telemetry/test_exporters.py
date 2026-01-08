@@ -4,6 +4,8 @@ Tests for trace and metric exporters.
 import os
 from unittest import mock
 from django.test import TestCase, override_settings
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
 
 
 class TraceExporterTests(TestCase):
@@ -15,8 +17,13 @@ class TraceExporterTests(TestCase):
         """Test that OTLP trace exporter is configured correctly."""
         from utils.telemetry import configure_tracing, create_resource
         
+        # Force reconfiguration for this test run
+        provider = trace.get_tracer_provider()
+        if isinstance(provider, TracerProvider):
+            setattr(provider, '_ecommerce_trace_configured', None)
+
         resource = create_resource()
-        tracer_provider = configure_tracing(resource)
+        configure_tracing(resource)
         
         # Verify OTLP exporter was created with correct endpoint
         mock_otlp.assert_called_once()
@@ -24,8 +31,7 @@ class TraceExporterTests(TestCase):
         self.assertIn('endpoint', call_kwargs)
     
     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'true'})
-    @mock.patch('utils.telemetry.ConsoleSpanExporter')
-    def test_console_exporter_when_enabled(self, mock_console):
+    def test_console_exporter_when_enabled(self):
         """Test that console exporter is added when OTEL_CONSOLE_EXPORT=true."""
         from utils.telemetry import configure_tracing, create_resource
         
@@ -33,12 +39,16 @@ class TraceExporterTests(TestCase):
         import importlib
         import utils.telemetry
         importlib.reload(utils.telemetry)
+
+        # Force reconfiguration
+        provider = trace.get_tracer_provider()
+        if isinstance(provider, TracerProvider):
+            setattr(provider, '_ecommerce_trace_configured', None)
         
         resource = create_resource()
-        tracer_provider = configure_tracing(resource)
-        
-        # Console exporter should be created
-        mock_console.assert_called()
+        with mock.patch('utils.telemetry.ConsoleSpanExporter') as mock_console:
+            configure_tracing(resource)
+            mock_console.assert_called()
     
     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'false'})
     @mock.patch('utils.telemetry.ConsoleSpanExporter')
@@ -52,7 +62,7 @@ class TraceExporterTests(TestCase):
         importlib.reload(utils.telemetry)
         
         resource = create_resource()
-        tracer_provider = configure_tracing(resource)
+        configure_tracing(resource)
         
         # Console exporter should not be created
         mock_console.assert_not_called()
@@ -76,8 +86,7 @@ class TraceExporterTests(TestCase):
     @mock.patch.dict(os.environ, {
         'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://custom:4317'
     })
-    @mock.patch('utils.telemetry.OTLPSpanExporter')
-    def test_custom_otlp_endpoint(self, mock_otlp):
+    def test_custom_otlp_endpoint(self):
         """Test that custom OTLP endpoint is used."""
         from utils.telemetry import configure_tracing, create_resource
         
@@ -85,13 +94,19 @@ class TraceExporterTests(TestCase):
         import importlib
         import utils.telemetry
         importlib.reload(utils.telemetry)
+
+        # Force reconfiguration
+        provider = trace.get_tracer_provider()
+        if isinstance(provider, TracerProvider):
+            setattr(provider, '_ecommerce_trace_configured', None)
         
         resource = create_resource()
-        configure_tracing(resource)
-        
-        # Verify custom endpoint was used
-        call_kwargs = mock_otlp.call_args[1]
-        self.assertEqual(call_kwargs['endpoint'], 'http://custom:4317')
+        with mock.patch('utils.telemetry.OTLPSpanExporter') as mock_otlp:
+            configure_tracing(resource)
+
+            # Verify custom endpoint was used
+            call_kwargs = mock_otlp.call_args[1]
+            self.assertEqual(call_kwargs['endpoint'], 'http://custom:4317')
 
 
 class MetricExporterTests(TestCase):
@@ -112,8 +127,7 @@ class MetricExporterTests(TestCase):
         self.assertIn('endpoint', call_kwargs)
     
     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'true'})
-    @mock.patch('utils.telemetry.ConsoleMetricExporter')
-    def test_console_metric_exporter_when_enabled(self, mock_console):
+    def test_console_metric_exporter_when_enabled(self):
         """Test that console metric exporter is added when enabled."""
         from utils.telemetry import configure_metrics, create_resource
         
@@ -123,10 +137,9 @@ class MetricExporterTests(TestCase):
         importlib.reload(utils.telemetry)
         
         resource = create_resource()
-        meter_provider = configure_metrics(resource)
-        
-        # Console metric exporter should be created
-        mock_console.assert_called()
+        with mock.patch('utils.telemetry.ConsoleMetricExporter') as mock_console:
+            configure_metrics(resource)
+            mock_console.assert_called()
     
     @mock.patch('utils.telemetry.OTLPMetricExporter')
     def test_otlp_metric_exporter_handles_failure(self, mock_otlp):

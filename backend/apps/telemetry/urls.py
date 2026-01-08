@@ -1,0 +1,7 @@
+from django.urls import path
+
+from .views import telemetry_health
+
+urlpatterns = [
+    path('health/', telemetry_health, name='telemetry-health'),
+]

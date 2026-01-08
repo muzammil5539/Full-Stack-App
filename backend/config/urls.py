@@ -22,6 +22,9 @@ urlpatterns = [
     path('api/v1/wishlist/', include('apps.wishlist.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
 
+    # Telemetry
+    path('api/v1/telemetry/', include('apps.telemetry.urls')),
+
     # Admin-only CRUD API
     path('api/v1/admin/', include('apps.admin_api.urls')),
 ]
