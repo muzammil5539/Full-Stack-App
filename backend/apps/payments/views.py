@@ -31,7 +31,18 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         # Object-level permission: users can only see their own payments
-        return Payment.objects.filter(order__user=self.request.user).select_related(
+        qs = Payment.objects.filter(order__user=self.request.user)
+
+        order_param = self.request.query_params.get('order')
+        try:
+            if order_param is not None:
+                order_id = int(order_param)
+                if order_id > 0:
+                    qs = qs.filter(order_id=order_id)
+        except (TypeError, ValueError):
+            qs = qs.none()
+
+        return qs.select_related(
             'order__user',
             'order__shipping_address',
             'order__billing_address'

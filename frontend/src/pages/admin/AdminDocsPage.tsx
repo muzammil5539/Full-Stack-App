@@ -27,7 +27,7 @@ export default function AdminDocsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [docs, setDocs] = useState<DocListItem[]>([])
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string>('')
   const [docLoading, setDocLoading] = useState(false)
   const [doc, setDoc] = useState<DocDetailResponse | null>(null)
 
@@ -43,7 +43,7 @@ export default function AdminDocsPage() {
 
         if (!cancelled) {
           setDocs(next)
-          setSelected(next[0]?.name ?? null)
+          setSelected(next[0]?.name ?? '')
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load docs list.')
@@ -64,7 +64,8 @@ export default function AdminDocsPage() {
   }, [docs, selected])
 
   useEffect(() => {
-    if (!selected) {
+    const name: string = selected
+    if (!name) {
       setDoc(null)
       return
     }
@@ -74,7 +75,7 @@ export default function AdminDocsPage() {
       try {
         setDocLoading(true)
         setError(null)
-        const data = await getJson<DocDetailResponse>(`${API_BASE_URL}/docs/${encodeURIComponent(selected)}/`)
+        const data = await getJson<DocDetailResponse>(`${API_BASE_URL}/docs/${encodeURIComponent(name)}/`)
         if (!cancelled) setDoc(data)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load doc.')

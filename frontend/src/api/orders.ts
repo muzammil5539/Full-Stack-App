@@ -71,3 +71,7 @@ export async function createOrderFromCart(params: {
 }): Promise<OrderDetail> {
   return postJson<OrderDetail>(`${API_BASE_URL}/api/v1/orders/create_from_cart/`, params)
 }
+
+export async function cancelOrder(id: number, notes?: string): Promise<OrderDetail> {
+  return postJson<OrderDetail>(`${API_BASE_URL}/api/v1/orders/${id}/cancel/`, notes ? { notes } : {})
+}

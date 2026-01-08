@@ -180,17 +180,39 @@ export default function ProductDetailPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-4 md:grid-cols-2">
+      <section className="rounded-2xl border border-slate-200 bg-gradient-to-r from-sky-50 via-white to-emerald-50 p-5 shadow-sm dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-sky-950/30">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-200">
+            <span className="h-2 w-2 rounded-full bg-sky-500" /> In stock & ready to ship
+          </div>
+          {product.is_on_sale && product.discount_percentage ? (
+            <span className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 dark:bg-red-900/40 dark:text-red-100 dark:ring-red-800">
+              {product.discount_percentage}% OFF
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-3 grid gap-2">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">{product.name}</h1>
+          {product.category_name ? (
+            <div className="text-sm text-slate-600 dark:text-slate-300">{product.category_name}</div>
+          ) : null}
+          {product.short_description ? (
+            <p className="max-w-3xl text-sm text-slate-600 dark:text-slate-300">{product.short_description}</p>
+          ) : null}
+        </div>
+      </section>
+
+      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 dark:border-slate-800 dark:bg-slate-950">
         {/* Image */}
-        <div className="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
           {primaryImage ? (
             <img
               src={primaryImage.image}
               alt={primaryImage.alt_text || product.name}
-              className="h-auto w-full rounded-lg object-cover"
+              className="h-auto w-full rounded-xl object-cover"
             />
           ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex h-72 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
               No image
             </div>
           )}
@@ -198,37 +220,23 @@ export default function ProductDetailPage() {
 
         {/* Info */}
         <div className="grid gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
-            {product.category_name && (
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{product.category_name}</div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-3xl font-bold">${effectivePrice}</span>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="text-3xl font-bold text-slate-900 dark:text-slate-50">${effectivePrice}</span>
             {product.compare_price && Number(product.compare_price) > Number(effectivePrice) && (
               <span className="text-lg text-slate-500 line-through dark:text-slate-400">
                 ${product.compare_price}
               </span>
             )}
-            {product.is_on_sale && product.discount_percentage && (
-              <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 dark:bg-red-900 dark:text-red-100">
-                {product.discount_percentage}% OFF
-              </span>
-            )}
-          </div>
-
-          <div className="text-sm">
-            <span className="font-medium">Stock:</span>{' '}
-            <span className={effectiveStock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+            <span
+              className={
+                effectiveStock > 0
+                  ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100'
+                  : 'rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-100'
+              }
+            >
               {effectiveStock > 0 ? `${effectiveStock} available` : 'Out of stock'}
             </span>
           </div>
-
-          {product.short_description && (
-            <p className="text-sm text-slate-700 dark:text-slate-200">{product.short_description}</p>
-          )}
 
           {/* Variants */}
           {product.variants && product.variants.length > 0 && (
@@ -272,12 +280,16 @@ export default function ProductDetailPage() {
             </div>
           )}
 
+          {product.short_description && (
+            <p className="text-sm text-slate-700 dark:text-slate-200">{product.short_description}</p>
+          )}
+
           {/* Add to Cart */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               disabled={!isAuthenticated || effectiveStock <= 0 || addingToCart}
               onClick={handleAddToCart}
-              className="inline-flex h-10 items-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
+              className="inline-flex h-10 items-center rounded-md bg-sky-600 px-4 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-500"
             >
               {addingToCart ? 'Adding…' : 'Add to Cart'}
             </button>

@@ -139,6 +139,12 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Backend: serve documentation from `/docs/` (admin-only; reads markdown from `backend/docs/`).
 
 **Testing**
+**Backend testing levels**
+- [ ] Unit tests: pure utilities (money validation, idempotency helpers, telemetry/logging helpers) with fast isolated tests.
+- [ ] Integration tests: DRF endpoints with DB (auth, cart, orders, payments, admin CRUD), including permissions and error shapes.
+- [ ] E2E tests: critical user journeys through HTTP (login → browse → cart → checkout → payment), run against a real app instance.
+
+**Backend coverage backlog (specific)**
 - [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cancel rules, cart quantity behavior.
 - [ ] Add API tests for payments: create_for_order ownership, invalid method, cancelled order.
 
@@ -242,3 +248,9 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Type Safety & Maintainability**
 - [ ] Replace remaining broad `unknown`/`Record<string, unknown>` types with concrete API models where feasible.
 - [ ] Add basic UI tests for critical flows (cart selection → checkout → order created).
+- [ ] Add frontend test harness (e.g., Jest + React Testing Library) and smoke tests for critical pages/components.
+
+**Frontend testing levels**
+- [ ] Unit tests: components/hooks/utils (formatters, selectors, small UI pieces) without network.
+- [ ] Integration tests: pages with mocked API (routing, forms, error states, admin flows) using a component test runner.
+- [ ] E2E tests: browser flows (login → browse → add to cart → checkout → order confirmation; admin CRUD + docs) using Playwright/Cypress.

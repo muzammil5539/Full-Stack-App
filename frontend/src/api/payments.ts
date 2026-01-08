@@ -26,6 +26,11 @@ export async function listPayments(): Promise<Payment[]> {
   return data.results
 }
 
+export async function listPaymentsForOrder(orderId: number): Promise<Payment[]> {
+  const data = await getJson<PaginatedResponse<Payment>>(`${API_BASE_URL}/api/v1/payments/?order=${orderId}`)
+  return data.results
+}
+
 export async function createPaymentForOrder(params: {
   order: number
   payment_method: string
