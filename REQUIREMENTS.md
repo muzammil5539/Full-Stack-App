@@ -30,7 +30,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Compute totals safely server-side (guard against negative `shipping_cost`, `tax`, `discount`, and enforce `total >= 0`).
 - [x] Enforce required checkout fields (if your business rules require shipping/billing addresses, validate and error when missing).
 - [x] Stock enforcement at checkout (verify stock for product/variant and prevent oversell).
-- [ ] Order detail endpoints should include consistent, complete data needed by UI (items, product snapshots, totals, addresses).
+- [x] Order detail endpoints should include consistent, complete data needed by UI (items, product snapshots, totals, addresses).
 - [ ] Order lifecycle beyond `cancel` (refund/return, status transitions like paid/shipped/delivered, admin update actions).
 
 **Payments**
@@ -43,8 +43,8 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [x] Make `clear` robust when cart doesn’t exist yet (avoid 500 if cart record missing).
 
 **Products**
-- [ ] Ensure product detail serialization supports the UI needs (images, variants, attributes) and remains stable.
-- [ ] Ensure image URLs are usable by frontend (absolute URLs or documented base handling).
+- [x] Ensure product detail serialization supports the UI needs (images, variants, attributes) and remains stable.
+- [x] Ensure image URLs are usable by frontend (absolute URLs or documented base handling).
 
 **Reviews**
 - [x] Allow authenticated users to manage their review safely (update/delete rules and object-level permissions).
@@ -74,7 +74,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Payments/checkout idempotency strategy (avoid duplicate payments/orders from retries).
 
 **Performance**
-- [ ] Avoid N+1 queries in serializers (use `select_related`/`prefetch_related` systematically for list/detail endpoints).
+- [x] Avoid N+1 queries in serializers (use `select_related`/`prefetch_related` systematically for list/detail endpoints).
 
 **Observability**
 - [ ] Structured logging for checkout/payment failures; consistent error shapes.

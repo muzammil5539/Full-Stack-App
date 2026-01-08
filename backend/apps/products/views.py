@@ -20,7 +20,6 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Product.objects.filter(is_active=True).select_related('category', 'brand')
     serializer_class = ProductSerializer
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -28,6 +27,16 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name', 'description', 'sku']
     ordering_fields = ['price', 'created_at', 'name']
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        return Product.objects.filter(is_active=True).select_related(
+            'category',
+            'brand'
+        ).prefetch_related(
+            'images',
+            'variants',
+            'attributes'
+        ).order_by('-created_at', '-id')
 
 
 class CategoryAdminViewSet(viewsets.ModelViewSet):

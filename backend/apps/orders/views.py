@@ -21,7 +21,17 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).prefetch_related('items')
+        return Order.objects.filter(user=self.request.user).select_related(
+            'user',
+            'shipping_address',
+            'billing_address'
+        ).prefetch_related(
+            'items__product__category',
+            'items__product__brand',
+            'items__product__images',
+            'items__variant',
+            'status_history'
+        ).order_by('-created_at', '-id')
     
     @action(detail=False, methods=['post'], throttle_classes=[CheckoutRateThrottle])
     def create_from_cart(self, request):
