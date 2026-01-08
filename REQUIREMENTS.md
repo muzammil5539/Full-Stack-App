@@ -145,7 +145,8 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] E2E tests: critical user journeys through HTTP (login → browse → cart → checkout → payment), run against a real app instance.
 
 **Backend coverage backlog (specific)**
-- [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cancel rules, cart quantity behavior.
+- [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cart quantity behavior.
+- [x] Add API tests for cancel rules.
 - [ ] Add API tests for payments: create_for_order ownership, invalid method, cancelled order.
 
 ---
@@ -248,7 +249,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Type Safety & Maintainability**
 - [ ] Replace remaining broad `unknown`/`Record<string, unknown>` types with concrete API models where feasible.
 - [ ] Add basic UI tests for critical flows (cart selection → checkout → order created).
-- [ ] Add frontend test harness (e.g., Jest + React Testing Library) and smoke tests for critical pages/components.
+- [x] Add frontend test harness (e.g., Jest/Vitest + React Testing Library) and smoke tests for critical pages/components.
 
 **Frontend testing levels**
 - [ ] Unit tests: components/hooks/utils (formatters, selectors, small UI pieces) without network.

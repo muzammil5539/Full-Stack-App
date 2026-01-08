@@ -432,14 +432,18 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        order.status = 'cancelled'
-        order.save()
-        
-        OrderStatusHistory.objects.create(
-            order=order,
-            status='cancelled',
-            notes=request.data.get('notes', 'Cancelled by customer')
-        )
+        with transaction.atomic():
+            order.status = 'cancelled'
+            order.save()
+
+            OrderStatusHistory.objects.create(
+                order=order,
+                status='cancelled',
+                notes=request.data.get('notes', 'Cancelled by customer')
+            )
+
+            # Keep payments consistent with the order state.
+            order.payments.filter(status='pending').update(status='cancelled')
         
         serializer = OrderSerializer(order)
         return Response(serializer.data)

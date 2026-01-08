@@ -1,0 +1,79 @@
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from rest_framework.test import APIClient
+
+from apps.accounts.models import Address
+from apps.orders.models import Order, OrderStatusHistory
+from apps.payments.models import Payment
+
+
+class OrderCancelEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email='cancel@example.com',
+            username='canceluser',
+            password='password123',
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.address = Address.objects.create(
+            user=self.user,
+            address_type='shipping',
+            full_name='Test User',
+            phone='1234567890',
+            address_line1='123 Test St',
+            city='Test City',
+            state='Test State',
+            postal_code='12345',
+            country='Test Country',
+        )
+
+        self.order = Order.objects.create(
+            user=self.user,
+            shipping_address=self.address,
+            billing_address=self.address,
+            subtotal=Decimal('10.00'),
+            shipping_cost=Decimal('0.00'),
+            tax=Decimal('0.00'),
+            discount=Decimal('0.00'),
+            total=Decimal('10.00'),
+            status='pending',
+            notes='',
+        )
+
+        self.payment = Payment.objects.create(
+            order=self.order,
+            payment_method='stripe',
+            transaction_id='TX-CANCEL-1',
+            amount=Decimal('10.00'),
+            status='pending',
+        )
+
+    def test_cancel_sets_status_and_creates_history(self):
+        res = self.client.post(f'/api/v1/orders/{self.order.id}/cancel/', {'notes': 'Changed my mind'}, format='json')
+        self.assertEqual(res.status_code, 200, getattr(res, 'data', None))
+
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, 'cancelled')
+
+        history = OrderStatusHistory.objects.filter(order=self.order, status='cancelled').first()
+        self.assertIsNotNone(history)
+        self.assertEqual(history.notes, 'Changed my mind')
+
+    def test_cancel_cancels_pending_payments(self):
+        res = self.client.post(f'/api/v1/orders/{self.order.id}/cancel/', {}, format='json')
+        self.assertEqual(res.status_code, 200)
+
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, 'cancelled')
+
+    def test_cannot_cancel_shipped_delivered_or_cancelled(self):
+        for status in ['shipped', 'delivered', 'cancelled']:
+            self.order.status = status
+            self.order.save(update_fields=['status'])
+            res = self.client.post(f'/api/v1/orders/{self.order.id}/cancel/', {}, format='json')
+            self.assertEqual(res.status_code, 400)
