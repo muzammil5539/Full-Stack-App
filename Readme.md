@@ -117,6 +117,42 @@ cd backend
 python manage.py test
 ```
 
+## Observability (OpenTelemetry)
+
+This repo includes a local OpenTelemetry Collector setup with optional Jaeger or Zipkin backends.
+
+### 1) Start the collector + Jaeger (recommended)
+
+```bash
+docker compose --profile jaeger up
+```
+
+- Collector OTLP ingest:
+	- gRPC: `http://localhost:4317`
+	- HTTP: `http://localhost:4318`
+- Jaeger UI: `http://localhost:16686`
+
+### 2) Point Django to the collector
+
+PowerShell:
+
+```powershell
+$env:OTEL_ENABLED = "true"
+$env:OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317"
+cd backend
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+### Switching backend (Zipkin)
+
+```bash
+OTEL_TRACE_EXPORTER=zipkin docker compose --profile zipkin up
+```
+
+Zipkin UI: `http://localhost:9411`
+
+Note: `http://localhost:4317` is not a web page. It’s a collector ingest port, so a browser will show “refused to connect”.
+
 ### Code Style
 - Follow PEP 8 for Python code
 - Use ESLint for JavaScript/React code

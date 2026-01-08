@@ -1,6 +1,6 @@
 # Requirements Checklist (Incomplete)
 
-Last updated: 2026-01-07
+Last updated: 2026-01-08
 
 This document lists **incomplete** Functional Requirements (**FRs**) and Non‑Functional Requirements (**NFRs**) for both backend (Django/DRF) and frontend (React/Vite).
 
@@ -97,6 +97,16 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Configure OTEL environment variables for backend service (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT).
 - [ ] Add health check endpoint that reports telemetry pipeline status.
 
+**OpenTelemetry (Local Dev / Tooling)**
+- [ ] Add local OpenTelemetry Collector config (otel-collector-config.yaml) with OTLP ingest over gRPC/HTTP.
+- [ ] Add docker-compose setup to run collector + Jaeger and/or Zipkin via profiles.
+- [ ] Support switching trace backend via env var (Jaeger vs Zipkin vs remote OTLP) without code changes.
+
+**OpenTelemetry (Backend) – NFRs**
+- [ ] NFR: Provide a reproducible local observability setup (one command to start collector + UI).
+- [ ] NFR: Default local telemetry should not require any external SaaS.
+- [ ] NFR: Document how to run collector, Jaeger/Zipkin UIs, and required backend env vars.
+
 **OpenTelemetry (Admin Portal - Backend)**
 - [ ] Add dedicated tracing for all admin API endpoints (CRUD operations on all models).
 - [ ] Track admin authentication and permission checks with span attributes (admin_user_id, permission_name, resource_type).
@@ -125,6 +135,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 **Documentation**
 - [ ] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
 - [ ] Define webhook plan (API docs say “Coming soon”).
+- [ ] Add docs: local OpenTelemetry Collector + Jaeger/Zipkin docker-compose usage and backend env vars.
 
 **Testing**
 - [ ] Add API tests for: create_from_cart with `item_ids`, empty selection, invalid IDs, cancel rules, cart quantity behavior.

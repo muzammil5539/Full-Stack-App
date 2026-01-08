@@ -1,0 +1,51 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+  batch:
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  zipkin:
+    endpoint: http://zipkin:9411/api/v2/spans
+
+  # Use this to forward to any OTLP-compatible backend (Tempo, Honeycomb, Azure, etc.)
+  # Set REMOTE_OTLP_ENDPOINT in docker-compose.yml (or via environment).
+  otlp/remote:
+    endpoint: ${env:REMOTE_OTLP_ENDPOINT}
+    tls:
+      insecure: true
+
+  logging:
+    verbosity: normal
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      # Set OTEL_TRACE_EXPORTER to one of: otlp/jaeger | zipkin | otlp/remote | logging
+      exporters: [${env:OTEL_TRACE_EXPORTER}, logging]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      # Metrics are logged by default; set OTEL_METRICS_EXPORTER=otlp/remote to forward.
+      exporters: [${env:OTEL_METRICS_EXPORTER}, logging]

@@ -1,0 +1,39 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    environment:
+      # Choose where traces are exported:
+      # - otlp/jaeger (default)
+      # - zipkin
+      # - otlp/remote
+      # - logging
+      OTEL_TRACE_EXPORTER: ${OTEL_TRACE_EXPORTER:-otlp/jaeger}
+
+      # Metrics aren't supported by Jaeger/Zipkin directly; log them by default.
+      # Set to otlp/remote to forward metrics to an OTLP backend.
+      OTEL_METRICS_EXPORTER: ${OTEL_METRICS_EXPORTER:-logging}
+
+      # Used when OTEL_TRACE_EXPORTER=otlp/remote and/or OTEL_METRICS_EXPORTER=otlp/remote
+      REMOTE_OTLP_ENDPOINT: ${REMOTE_OTLP_ENDPOINT:-jaeger:4317}
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "13133:13133" # Collector health check
+      - "8888:8888" # Collector metrics
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # Jaeger UI
+    profiles: ["jaeger"]
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411" # Zipkin UI
+    profiles: ["zipkin"]
