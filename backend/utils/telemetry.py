@@ -352,3 +352,22 @@ api_error_counter = _meter.create_counter(
     description="Number of API errors",
     unit="1",
 )
+
+# Admin/backend metrics
+admin_request_counter = _meter.create_counter(
+    "admin.requests",
+    description="Number of admin API requests",
+    unit="1",
+)
+
+admin_error_counter = _meter.create_counter(
+    "admin.errors",
+    description="Number of admin API errors",
+    unit="1",
+)
+
+admin_duration_histogram = _meter.create_histogram(
+    "admin.request.duration",
+    description="Duration of admin API requests",
+    unit="ms",
+)

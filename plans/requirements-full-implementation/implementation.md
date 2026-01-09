@@ -1071,11 +1071,11 @@ export default function ProductList() {
 
 #### Step 13: Backend test backlog
 
-- [ ] Orders: add tests for `item_ids` validation edge cases.
-- [ ] Payments: add tests for ownership + invalid payment method.
+ - [x] Orders: add tests for `item_ids` validation edge cases.
+ - [x] Payments: add tests for ownership + invalid payment method.
 
 ##### Step 13 Verification Checklist
-- [ ] `cd backend` → `python manage.py test`
+- [x] `cd backend` → `python manage.py test`
 
 #### Step 13 STOP & COMMIT
 **STOP & COMMIT:** Stage and commit.
@@ -1100,9 +1100,12 @@ export default function ProductList() {
 
 - [ ] Add OTel web packages and initialize tracing early in the app.
 - [ ] Add spans for admin navigation + CRUD operations.
+ - [x] Add OTel web packages and initialize tracing early in the app.
+ - [x] Add spans for admin navigation + CRUD operations.
 
 ##### Step 15 Verification Checklist
 - [ ] With collector running: admin SPA navigation spans appear.
+ - [ ] With collector running: admin SPA navigation spans appear.
 
 #### Step 15 STOP & COMMIT
 **STOP & COMMIT:** Stage and commit.

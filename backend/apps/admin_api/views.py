@@ -38,10 +38,51 @@ from .serializers import (
 
 
 from utils.permissions import IsStaffOrInAdminGroupStrict
+from utils.otel_utils import set_span_attributes, add_span_event, record_span_error
+from utils.telemetry import admin_request_counter, admin_error_counter, admin_duration_histogram
+import time
 
 
 class AdminOnly(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrInAdminGroupStrict]
+
+    def dispatch(self, request, *args, **kwargs):
+        start = time.monotonic()
+        view_name = self.__class__.__name__
+        method = request.method
+        user_id = getattr(request.user, 'id', None)
+
+        # Add span attributes and a received event
+        set_span_attributes({
+            'app.operation': f'admin.{view_name}',
+            'admin.view': view_name,
+            'user.id': user_id,
+            'http.method': method,
+        })
+        add_span_event('admin.request.received', {'view': view_name, 'method': method, 'user_id': user_id})
+
+        try:
+            try:
+                admin_request_counter.add(1, {'view': view_name, 'method': method})
+            except Exception:
+                pass
+
+            response = super().dispatch(request, *args, **kwargs)
+
+            # Record duration and completion event
+            try:
+                admin_duration_histogram.record((time.monotonic() - start) * 1000.0, {'view': view_name, 'method': method, 'status': response.status_code})
+            except Exception:
+                pass
+            add_span_event('admin.request.completed', {'view': view_name, 'status': getattr(response, 'status_code', None)})
+            return response
+        except Exception as exc:
+            try:
+                admin_error_counter.add(1, {'view': view_name, 'method': method})
+            except Exception:
+                pass
+            record_span_error('admin_handler_error', 'Exception in admin handler', {'view': view_name, 'method': method}, exception=exc)
+            raise
 
 
 class TokenAdminViewSet(AdminOnly):

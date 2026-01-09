@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AdminRequired from '../../admin/AdminRequired'
 import { findAdminResource } from '../../admin/resources'
 import { adminDelete } from '../../api/adminCrud'
 import ErrorMessage from '../../shared/ui/ErrorMessage'
 import AutoAdminForm from './forms/AutoAdminForm'
+import { startAdminSpan, endSpan } from '../../telemetry/otel'
 
 const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
 
@@ -17,6 +18,11 @@ export default function AdminModelEditPage() {
   const navigate = useNavigate()
 
   const resource = useMemo(() => findAdminResource(app, model), [app, model])
+
+  useEffect(() => {
+    const span = startAdminSpan(`admin.change.${app}.${model}.${id}`)
+    return () => endSpan(span)
+  }, [app, model, id])
 
   return (
     <AdminRequired>
@@ -49,11 +55,14 @@ export default function AdminModelEditPage() {
                       className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
                       onClick={async () => {
                         if (!window.confirm('Approve payment proof?')) return
+                        const span = startAdminSpan(`admin.approve_proof.${app}.${model}.${id}`)
                         try {
                           await import('../../api/adminCrud').then((m) => m.adminPatch(resource.apiPath, id, { proof_status: 'approved', status: 'completed' }))
                           window.location.reload()
                         } catch (e) {
                           alert(e instanceof Error ? e.message : 'Failed')
+                        } finally {
+                          endSpan(span)
                         }
                       }}
                     >
@@ -64,11 +73,14 @@ export default function AdminModelEditPage() {
                       className="inline-flex h-9 items-center justify-center rounded-md bg-rose-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-rose-700"
                       onClick={async () => {
                         if (!window.confirm('Reject payment proof?')) return
+                        const span = startAdminSpan(`admin.reject_proof.${app}.${model}.${id}`)
                         try {
                           await import('../../api/adminCrud').then((m) => m.adminPatch(resource.apiPath, id, { proof_status: 'rejected', status: 'failed' }))
                           window.location.reload()
                         } catch (e) {
                           alert(e instanceof Error ? e.message : 'Failed')
+                        } finally {
+                          endSpan(span)
                         }
                       }}
                     >
@@ -82,8 +94,13 @@ export default function AdminModelEditPage() {
                   onClick={async () => {
                     const ok = window.confirm('Delete this object? This cannot be undone.')
                     if (!ok) return
-                    await adminDelete(resource.apiPath, id)
-                    navigate(`/admin/${app}/${model}/`)
+                    const span = startAdminSpan(`admin.delete.${app}.${model}.${id}`)
+                    try {
+                      await adminDelete(resource.apiPath, id)
+                      navigate(`/admin/${app}/${model}/`)
+                    } finally {
+                      endSpan(span)
+                    }
                   }}
                 >
                   Delete

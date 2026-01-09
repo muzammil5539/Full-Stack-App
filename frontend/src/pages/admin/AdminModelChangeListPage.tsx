@@ -4,6 +4,7 @@ import AdminRequired from '../../admin/AdminRequired'
 import { findAdminResource } from '../../admin/resources'
 import { getJson } from '../../api/http'
 import ErrorMessage from '../../shared/ui/ErrorMessage'
+import { startAdminSpan, endSpan } from '../../telemetry/otel'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -30,6 +31,7 @@ export default function AdminModelChangeListPage() {
 
   useEffect(() => {
     if (!resource) return
+    const pageSpan = startAdminSpan(`admin.change_list.${app}.${model}`)
 
     let cancelled = false
     async function load() {
@@ -49,6 +51,7 @@ export default function AdminModelChangeListPage() {
     void load()
     return () => {
       cancelled = true
+      endSpan(pageSpan)
     }
   }, [resource])
 

@@ -287,3 +287,80 @@ class CreateFromCartPricingValidationTests(TestCase):
 		mock_failed.add.assert_called()
 		mock_api_err.add.assert_called()
 		mock_duration.record.assert_called()
+
+	def test_empty_item_ids_rejected(self):
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': [],
+				'shipping_address': self.shipping_address.id,
+				'billing_address': self.billing_address.id,
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		self.assertEqual(Order.objects.count(), 0)
+		self.assertTrue(self.cart.items.filter(id=self.item.id).exists())
+		self.assertEqual(res.data.get('error'), 'No items selected')
+
+	def test_item_ids_invalid_type_rejected(self):
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': ['a', 'b'],
+				'shipping_address': self.shipping_address.id,
+				'billing_address': self.billing_address.id,
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		self.assertEqual(Order.objects.count(), 0)
+		self.assertTrue(self.cart.items.filter(id=self.item.id).exists())
+		self.assertEqual(res.data.get('error'), 'Invalid item_ids')
+		self.assertIn('item_ids must be a list of integers', res.data.get('detail', ''))
+
+	def test_item_ids_non_positive_ids_rejected(self):
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': [0, -1],
+				'shipping_address': self.shipping_address.id,
+				'billing_address': self.billing_address.id,
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		self.assertEqual(Order.objects.count(), 0)
+		self.assertTrue(self.cart.items.filter(id=self.item.id).exists())
+		self.assertEqual(res.data.get('error'), 'No items selected')
+
+	def test_item_ids_missing_item_ids_rejected(self):
+		# Pass an id that is not in the user's cart
+		missing_id = 999999
+		res = self.client.post(
+			'/api/v1/orders/create_from_cart/',
+			{
+				'item_ids': [missing_id],
+				'shipping_address': self.shipping_address.id,
+				'billing_address': self.billing_address.id,
+				'shipping_cost': '0.00',
+				'tax': '0.00',
+				'discount': '0.00',
+			},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		self.assertEqual(Order.objects.count(), 0)
+		self.assertTrue(self.cart.items.filter(id=self.item.id).exists())
+		self.assertEqual(res.data.get('error'), 'Some items not found in cart')
+		self.assertIn('missing_item_ids', res.data)
+		self.assertEqual(res.data.get('missing_item_ids'), [missing_id])

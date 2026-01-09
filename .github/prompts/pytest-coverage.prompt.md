@@ -1,5 +1,6 @@
 ---
 agent: agent
+model: GPT-5 mini
 description: 'Run pytest tests with coverage, discover lines missing coverage, and increase coverage to 100%.'
 ---
 

@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ErrorMessage from '../../shared/ui/ErrorMessage'
 import AdminRequired from '../../admin/AdminRequired'
 import { findAdminResource } from '../../admin/resources'
 import AutoAdminForm from './forms/AutoAdminForm'
+import { startAdminSpan, endSpan } from '../../telemetry/otel'
 
 const linkBase = 'text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300'
 
@@ -14,6 +15,11 @@ export default function AdminModelAddPage() {
   const model = String(params.model ?? '')
 
   const resource = useMemo(() => findAdminResource(app, model), [app, model])
+
+  useEffect(() => {
+    const span = startAdminSpan(`admin.add.${app}.${model}`)
+    return () => endSpan(span)
+  }, [app, model])
 
   return (
     <AdminRequired>

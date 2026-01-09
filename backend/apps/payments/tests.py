@@ -192,6 +192,40 @@ class PaymentBusinessMetricsTests(TestCase):
 		mock_api_error.add.assert_called()
 		mock_record_error.assert_called_once()
 
+	def test_create_for_order_invalid_payment_method_rejected(self):
+		# Invalid payment method should return 400 with field error
+		res = self.client.post(
+			'/api/v1/payments/create_for_order/',
+			{'order': self.order.id, 'payment_method': 'not_a_method'},
+			format='json',
+		)
+		self.assertEqual(res.status_code, 400)
+		self.assertIn('payment_method', res.data)
+
+	def test_create_for_order_cannot_create_for_other_user(self):
+		# Creating a payment for another user's order should be rejected
+		User = get_user_model()
+		other = User.objects.create_user(email='other@example.com', username='other', password='pw')
+		# create an order that belongs to the other user
+		other_order = Order.objects.create(
+			user=other,
+			shipping_address=self.shipping_address,
+			billing_address=self.billing_address,
+			subtotal=Decimal('1.00'),
+			shipping_cost=Decimal('0.00'),
+			tax=Decimal('0.00'),
+			discount=Decimal('0.00'),
+			total=Decimal('1.00'),
+		)
+		res = self.client.post(
+			'/api/v1/payments/create_for_order/',
+			{'order': other_order.id, 'payment_method': 'stripe'},
+			format='json',
+		)
+		# Serializer uses Order.objects.get(id=value, user=request.user) so this should be a 400
+		self.assertEqual(res.status_code, 400)
+		self.assertIn('order', res.data)
+
 
 class PaymentFilterTests(TestCase):
 	def setUp(self):
