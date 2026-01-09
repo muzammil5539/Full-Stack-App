@@ -7,7 +7,7 @@ describe('http module', () => {
   })
 
   it('getJson throws with 401 status and parsed message', async () => {
-    global.fetch = vi.fn(async () => ({
+    globalThis.fetch = vi.fn(async () => ({
       ok: false,
       status: 401,
       headers: { get: () => 'application/json' },
@@ -19,7 +19,7 @@ describe('http module', () => {
   })
 
   it('postJson throws parsed validation messages', async () => {
-    global.fetch = vi.fn(async () => ({
+    globalThis.fetch = vi.fn(async () => ({
       ok: false,
       status: 400,
       headers: { get: () => 'application/json' },
@@ -32,7 +32,7 @@ describe('http module', () => {
 
   it('increments throttle metric when 429 encountered during retry', async () => {
     let calls = 0
-    global.fetch = vi.fn(async () => {
+    globalThis.fetch = vi.fn(async () => {
       calls += 1
       if (calls === 1) {
         return { ok: false, status: 429, headers: { get: () => null }, text: async () => '' } as any

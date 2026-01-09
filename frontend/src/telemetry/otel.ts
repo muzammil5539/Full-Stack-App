@@ -16,11 +16,22 @@ export async function initOtel() {
 
     const collector = (import.meta.env.VITE_OTEL_COLLECTOR_URL as string) || '/v1/traces'
 
-    const { WebTracerProvider } = await import('@opentelemetry/sdk-trace-web')
-    const { BatchSpanProcessor } = await import('@opentelemetry/sdk-trace-base')
-    const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http')
-    const { registerInstrumentations } = await import('@opentelemetry/instrumentation')
-    const { FetchInstrumentation } = await import('@opentelemetry/instrumentation-fetch')
+    // Use dynamic variable imports so Vite's static analysis won't try to resolve optional runtime deps.
+    // @ts-ignore: optional runtime dependency; avoid build-time type resolution
+    const traceWebPkg = '@opentelemetry/sdk-trace-web'
+    const { WebTracerProvider } = await import(/* @vite-ignore */ traceWebPkg as any)
+    // @ts-ignore: optional runtime dependency; avoid build-time type resolution
+    const traceBasePkg = '@opentelemetry/sdk-trace-base'
+    const { BatchSpanProcessor } = await import(/* @vite-ignore */ traceBasePkg as any)
+    // @ts-ignore: optional runtime dependency; avoid build-time type resolution
+    const exporterPkg = '@opentelemetry/exporter-trace-otlp-http'
+    const { OTLPTraceExporter } = await import(/* @vite-ignore */ exporterPkg as any)
+    // @ts-ignore: optional runtime dependency; avoid build-time type resolution
+    const instrumentationPkg = '@opentelemetry/instrumentation'
+    const { registerInstrumentations } = await import(/* @vite-ignore */ instrumentationPkg as any)
+    // @ts-ignore: optional runtime dependency; avoid build-time type resolution
+    const fetchPkg = '@opentelemetry/instrumentation-fetch'
+    const { FetchInstrumentation } = await import(/* @vite-ignore */ fetchPkg as any)
 
     const provider = new WebTracerProvider()
 

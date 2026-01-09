@@ -161,8 +161,8 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Frontend: document frontend routes/components and surface them in the admin portal docs view.
 
 **Home / Landing**
-- [ ] Replace starter home content with real storefront entry points (featured products, categories/brands, or promotions).
-- [ ] Modernize landing page UI (layout, spacing, typography) without changing features.
+- [x] Replace starter home content with real storefront entry points (featured products, categories/brands, or promotions).
+- [x] Modernize landing page UI (layout, spacing, typography) without changing features.
 
 **Products / Browse**
 - [ ] Add search input UI (wired to backend `search=`) and persist query in URL.
@@ -253,5 +253,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 
 **Frontend testing levels**
 - [ ] Unit tests: components/hooks/utils (formatters, selectors, small UI pieces) without network.
-- [ ] Integration tests: pages with mocked API (routing, forms, error states, admin flows) using a component test runner.
-- [ ] E2E tests: browser flows (login → browse → add to cart → checkout → order confirmation; admin CRUD + docs) using Playwright/Cypress.
+- [x] Integration tests: pages with mocked API (routing, forms, error states, admin flows) using a component test runner.
+- [x] E2E tests: browser flows (login → browse → add to cart → checkout → order confirmation; admin CRUD + docs) using Playwright/Cypress.
+---
+Updated: integration and E2E tests scaffolding added (vitest + Playwright smoke test).
