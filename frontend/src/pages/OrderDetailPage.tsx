@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { listMyAddresses, type Address } from '../api/accounts'
 import { cancelOrder, getOrderById, type OrderDetail, type OrderItem } from '../api/orders'
-import { listPaymentsForOrder, type Payment } from '../api/payments'
+import { listPaymentsForOrder, uploadPaymentProof, type Payment } from '../api/payments'
 import { useAuthToken } from '../auth/useAuthToken'
 import AuthRequired from '../shared/ui/AuthRequired'
 import ErrorMessage from '../shared/ui/ErrorMessage'
@@ -22,6 +22,60 @@ function formatAddressLabel(a: Address): string {
 
 function formatLineItemName(it: OrderItem): string {
   return it.product_details?.name ?? `Product #${it.product}`
+}
+
+function UploadProofForm({ payment, onUploaded }: { payment: Payment; onUploaded: (p: Payment) => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [note, setNote] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault()
+    if (!file) {
+      setError('Please choose a file to upload')
+      return
+    }
+    try {
+      setUploading(true)
+      setError(null)
+      const updated = await uploadPaymentProof(payment.id, file, note || undefined)
+      onUploaded(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2 grid gap-2">
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(ev) => setFile(ev.target.files ? ev.target.files[0] : null)}
+          disabled={uploading}
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={uploading}
+          className="inline-flex h-8 items-center rounded-md bg-sky-600 px-3 text-sm font-medium text-white"
+        >
+          {uploading ? 'Uploading…' : 'Upload proof'}
+        </button>
+      </div>
+      <input
+        className="text-sm rounded-md border px-2 py-1"
+        placeholder="Optional note"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        disabled={uploading}
+      />
+      {error ? <div className="text-xs text-rose-700">{error}</div> : null}
+    </form>
+  )
 }
 
 export default function OrderDetailPage() {
@@ -264,6 +318,19 @@ export default function OrderDetailPage() {
                 <div className="text-xs text-slate-500 dark:text-slate-400">Status: {p.status}</div>
                 {p.transaction_id ? (
                   <div className="text-xs text-slate-500 dark:text-slate-400">Txn: {p.transaction_id}</div>
+                ) : null}
+                {/* Proof upload for cash on delivery payments */}
+                {p.payment_method === 'cash_on_delivery' ? (
+                  <div className="mt-2">
+                    {p.proof_status && p.proof_status !== 'none' ? (
+                      <div className="text-xs text-slate-500">Proof status: {p.proof_status}</div>
+                    ) : (
+                      <UploadProofForm
+                        payment={p}
+                        onUploaded={(updated) => setPayments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))}
+                      />
+                    )}
+                  </div>
                 ) : null}
               </li>
             ))}

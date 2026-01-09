@@ -3,6 +3,7 @@ import time
 
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework import serializers
@@ -147,3 +148,41 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         set_span_attributes({"payment.id": payment.id})
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser])
+    def upload_proof(self, request, pk=None):
+        """Upload a proof file for manual payments (e.g., cash_on_delivery)."""
+        base_attrs = {"endpoint": "payments.upload_proof"}
+        try:
+            payment = Payment.objects.select_related('order').get(id=pk)
+        except Payment.DoesNotExist:
+            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Ownership check
+        if payment.order.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Only allow proof upload for manual / COD payments
+        if payment.payment_method != 'cash_on_delivery':
+            return Response({'error': 'Proof upload only allowed for cash on delivery payments'}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES.get('proof_file')
+        note = request.data.get('note')
+        if not file_obj:
+            return Response({'error': 'No file uploaded (field: proof_file)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save file and update proof metadata
+        from django.utils import timezone
+
+        payment.proof_file.save(file_obj.name, file_obj, save=False)
+        payment.proof_note = note or ''
+        payment.proof_status = 'pending'
+        payment.proof_uploaded_at = timezone.now()
+        payment.save()
+
+        try:
+            add_span_event('payment.proof_uploaded', {'payment_id': payment.id})
+        except Exception:
+            pass
+
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)

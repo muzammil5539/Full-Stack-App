@@ -28,6 +28,17 @@ class Payment(TimeStampedModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_date = models.DateTimeField(auto_now_add=True)
     idempotency_key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    # Manual proof upload (for cash on delivery / manual payments)
+    proof_file = models.FileField(upload_to='payment_proofs/', null=True, blank=True)
+    PROOF_STATUS = (
+        ('none', 'None'),
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    proof_status = models.CharField(max_length=20, choices=PROOF_STATUS, default='none')
+    proof_note = models.TextField(null=True, blank=True)
+    proof_uploaded_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         db_table = 'payments'

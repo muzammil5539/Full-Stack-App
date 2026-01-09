@@ -158,6 +158,32 @@ export async function postJson<T = unknown>(url: string, body: unknown, init?: R
   return (await response.json()) as T
 }
 
+export async function postMultipart<T = unknown>(url: string, form: FormData, init?: RequestInit): Promise<T> {
+  // Do not set Content-Type; browser will set the multipart boundary
+  const response = await fetchWithRetry(url, {
+    method: 'POST',
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...getAuthHeader(),
+      ...(init?.headers ?? {}),
+    },
+    body: form,
+  })
+
+  if (!response.ok) {
+    const { message, details } = await readErrorMessage(response)
+    const err = Object.assign(new Error(message), { status: response.status, details })
+    throw err
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
 export async function patchJson<T = unknown>(url: string, body: unknown, init?: RequestInit): Promise<T> {
   const response = await fetchWithRetry(url, {
     method: 'PATCH',

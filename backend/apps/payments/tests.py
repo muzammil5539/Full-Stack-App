@@ -1,3 +1,97 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from rest_framework.test import APIClient
+from django.core.files.uploadedfile import SimpleUploadedFile
+from decimal import Decimal
+from apps.accounts.models import Address
+from apps.orders.models import Order
+from .models import Payment
+
+
+class PaymentProofUploadTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(email='u1@example.com', username='u1', password='pass')
+        self.other = User.objects.create_user(email='u2@example.com', username='u2', password='pass')
+        self.client = APIClient()
+
+        self.shipping = Address.objects.create(
+            user=self.user,
+            address_type='shipping',
+            full_name='U1',
+            phone='123',
+            address_line1='L1',
+            city='C',
+            state='S',
+            postal_code='11111',
+            country='Country',
+            is_default=True,
+        )
+        self.billing = Address.objects.create(
+            user=self.user,
+            address_type='billing',
+            full_name='U1',
+            phone='123',
+            address_line1='L1',
+            city='C',
+            state='S',
+            postal_code='11111',
+            country='Country',
+            is_default=True,
+        )
+
+        self.order = Order.objects.create(
+            user=self.user,
+            shipping_address=self.shipping,
+            billing_address=self.billing,
+            subtotal=Decimal('10.00'),
+            shipping_cost=Decimal('0.00'),
+            tax=Decimal('0.00'),
+            discount=Decimal('0.00'),
+            total=Decimal('10.00'),
+        )
+
+        self.payment = Payment.objects.create(
+            order=self.order,
+            payment_method='cash_on_delivery',
+            transaction_id='T1',
+            amount=self.order.total,
+            status='pending',
+        )
+
+    def test_missing_file_returns_400(self):
+        self.client.force_authenticate(user=self.user)
+        res = self.client.post(f'/api/v1/payments/{self.payment.id}/upload_proof/', {}, format='multipart')
+        self.assertEqual(res.status_code, 400)
+
+    def test_invalid_method_rejected(self):
+        # Create payment with non-COD method
+        p2 = Payment.objects.create(
+            order=self.order,
+            payment_method='credit_card',
+            transaction_id='T2',
+            amount=self.order.total,
+            status='pending',
+        )
+        self.client.force_authenticate(user=self.user)
+        f = SimpleUploadedFile('proof.txt', b'fake')
+        res = self.client.post(f'/api/v1/payments/{p2.id}/upload_proof/', {'proof_file': f}, format='multipart')
+        self.assertEqual(res.status_code, 400)
+
+    def test_upload_requires_ownership(self):
+        self.client.force_authenticate(user=self.other)
+        f = SimpleUploadedFile('proof.txt', b'fake')
+        res = self.client.post(f'/api/v1/payments/{self.payment.id}/upload_proof/', {'proof_file': f}, format='multipart')
+        self.assertEqual(res.status_code, 403)
+
+    def test_successful_upload_sets_pending(self):
+        self.client.force_authenticate(user=self.user)
+        f = SimpleUploadedFile('proof.png', b'fakeimagecontent', content_type='image/png')
+        res = self.client.post(f'/api/v1/payments/{self.payment.id}/upload_proof/', {'proof_file': f, 'note': 'Paid in cash'}, format='multipart')
+        self.assertEqual(res.status_code, 200)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.proof_status, 'pending')
+        self.assertTrue(bool(self.payment.proof_file))
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
