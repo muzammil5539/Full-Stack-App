@@ -1,24 +1,53 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 from .models import Payment
 
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['transaction_id', 'order', 'payment_method', 'amount', 'status', 'payment_date']
-    list_filter = ['status', 'payment_method', 'payment_date']
+    list_display = ['transaction_id', 'order', 'payment_method', 'amount', 'status', 'proof_status', 'payment_date']
+    list_filter = ['status', 'payment_method', 'payment_date', 'proof_status']
     search_fields = ['transaction_id', 'order__order_number']
-    readonly_fields = ['payment_date']
+    readonly_fields = ['payment_date', 'proof_preview']
+    fields = ['order', 'payment_method', 'transaction_id', 'amount', 'status', 'payment_date', 'proof_status', 'proof_note', 'proof_preview']
 
     actions = ['approve_proof', 'reject_proof']
 
+    def proof_preview(self, obj: Payment):
+        if not obj.proof_file:
+            return '(no file)'
+        url = obj.proof_file.url
+        # If image, render <img>, otherwise link to file
+        try:
+            name = obj.proof_file.name.lower()
+            if name.endswith('.png') or name.endswith('.jpg') or name.endswith('.jpeg') or name.endswith('.gif'):
+                return mark_safe(f'<img src="{url}" style="max-height:150px;" />')
+        except Exception:
+            pass
+        return mark_safe(f'<a href="{url}" target="_blank">Download proof</a>')
+
+    proof_preview.short_description = 'Proof file'
+
     def approve_proof(self, request, queryset):
-        updated = queryset.update(proof_status='approved')
+        # approve proof and mark payment as completed
+        updated = 0
+        for p in queryset:
+            p.proof_status = 'approved'
+            p.status = 'completed'
+            p.save(update_fields=['proof_status', 'status'])
+            updated += 1
         self.message_user(request, f"Approved proof for {updated} payment(s)")
 
     approve_proof.short_description = 'Approve selected payment proofs'
 
     def reject_proof(self, request, queryset):
-        updated = queryset.update(proof_status='rejected')
+        # reject proof and mark payment as failed
+        updated = 0
+        for p in queryset:
+            p.proof_status = 'rejected'
+            p.status = 'failed'
+            p.save(update_fields=['proof_status', 'status'])
+            updated += 1
         self.message_user(request, f"Rejected proof for {updated} payment(s)")
 
     reject_proof.short_description = 'Reject selected payment proofs'

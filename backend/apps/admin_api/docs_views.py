@@ -4,6 +4,7 @@ from pathlib import Path
 
 from django.conf import settings
 from rest_framework import permissions
+from utils.permissions import IsStaffOrInAdminGroupStrict
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,7 +24,7 @@ def _is_safe_doc_name(name: str) -> bool:
 
 
 class AdminDocsListView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsStaffOrInAdminGroupStrict]
 
     def get(self, request):
         docs_dir = _docs_dir()
@@ -43,7 +44,7 @@ class AdminDocsListView(APIView):
 
 
 class AdminDocsDetailView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsStaffOrInAdminGroupStrict]
 
     def get(self, request, name: str):
         if not _is_safe_doc_name(name):

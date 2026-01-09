@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.contrib.auth.models import Group
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -132,3 +133,25 @@ class AdminDocsEndpointTests(TestCase):
         self.client.force_authenticate(user=self.admin)
         res = self.client.get('/docs/../settings.py/')
         self.assertEqual(res.status_code, 404)
+
+    def test_docs_list_allows_group_member(self):
+        group = Group.objects.create(name='admin_portal')
+        self.user.groups.add(group)
+        self.client.force_authenticate(user=self.user)
+
+        res = self.client.get('/docs/')
+        self.assertEqual(res.status_code, 200, res.data)
+
+    def test_docs_detail_allows_group_member(self):
+        group = Group.objects.create(name='admin_portal')
+        self.user.groups.add(group)
+        self.client.force_authenticate(user=self.user)
+
+        list_res = self.client.get('/docs/')
+        self.assertEqual(list_res.status_code, 200, list_res.data)
+        docs = list_res.data.get('docs', [])
+        self.assertTrue(len(docs) > 0, 'Expected at least one doc in backend/docs')
+
+        name = docs[0]['name']
+        res = self.client.get(f'/docs/{name}/')
+        self.assertEqual(res.status_code, 200, res.data)

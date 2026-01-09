@@ -31,3 +31,45 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
         # Write permissions are only allowed to admin users
         return request.user and request.user.is_staff
+
+
+class IsStaffOrInAdminGroup(permissions.BasePermission):
+    """
+    Allow write access to users who are staff or who belong to
+    the dedicated admin group (default: 'admin_portal'). Safe
+    methods remain open to any request.
+    """
+
+    ADMIN_GROUP_NAME = 'admin_portal'
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+
+        if user.is_staff:
+            return True
+
+        return user.groups.filter(name=self.ADMIN_GROUP_NAME).exists()
+
+
+class IsStaffOrInAdminGroupStrict(permissions.BasePermission):
+    """
+    Strict variant: require the user to be staff or in the admin group
+    for all methods (no public safe-method access).
+    """
+
+    ADMIN_GROUP_NAME = 'admin_portal'
+
+    def has_permission(self, request, view):
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+
+        if user.is_staff:
+            return True
+
+        return user.groups.filter(name=self.ADMIN_GROUP_NAME).exists()

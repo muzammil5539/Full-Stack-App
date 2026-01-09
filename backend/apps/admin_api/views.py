@@ -37,8 +37,11 @@ from .serializers import (
 )
 
 
+from utils.permissions import IsStaffOrInAdminGroupStrict
+
+
 class AdminOnly(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsStaffOrInAdminGroupStrict]
 
 
 class TokenAdminViewSet(AdminOnly):

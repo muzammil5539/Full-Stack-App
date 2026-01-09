@@ -41,18 +41,54 @@ export default function AdminModelEditPage() {
               <div className="text-xs text-slate-600 dark:text-slate-300">
                 Actions affect <span className="font-mono">{resource.apiPath}{id}/</span>
               </div>
-              <button
-                type="button"
-                className="inline-flex h-9 items-center justify-center rounded-md bg-rose-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-rose-700"
-                onClick={async () => {
-                  const ok = window.confirm('Delete this object? This cannot be undone.')
-                  if (!ok) return
-                  await adminDelete(resource.apiPath, id)
-                  navigate(`/admin/${app}/${model}/`)
-                }}
-              >
-                Delete
-              </button>
+              <div className="flex gap-2">
+                {resource.app === 'payments' && resource.model === 'payment' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+                      onClick={async () => {
+                        if (!window.confirm('Approve payment proof?')) return
+                        try {
+                          await import('../../api/adminCrud').then((m) => m.adminPatch(resource.apiPath, id, { proof_status: 'approved', status: 'completed' }))
+                          window.location.reload()
+                        } catch (e) {
+                          alert(e instanceof Error ? e.message : 'Failed')
+                        }
+                      }}
+                    >
+                      Approve proof
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 items-center justify-center rounded-md bg-rose-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-rose-700"
+                      onClick={async () => {
+                        if (!window.confirm('Reject payment proof?')) return
+                        try {
+                          await import('../../api/adminCrud').then((m) => m.adminPatch(resource.apiPath, id, { proof_status: 'rejected', status: 'failed' }))
+                          window.location.reload()
+                        } catch (e) {
+                          alert(e instanceof Error ? e.message : 'Failed')
+                        }
+                      }}
+                    >
+                      Reject proof
+                    </button>
+                  </>
+                ) : null}
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-rose-600 px-3 text-sm font-medium text-white shadow-sm hover:bg-rose-700"
+                  onClick={async () => {
+                    const ok = window.confirm('Delete this object? This cannot be undone.')
+                    if (!ok) return
+                    await adminDelete(resource.apiPath, id)
+                    navigate(`/admin/${app}/${model}/`)
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
 
             <AutoAdminForm
