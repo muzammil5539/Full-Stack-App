@@ -30,3 +30,6 @@ DATABASES = {
 
 # CORS - Allow all origins in development
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Disable OpenTelemetry in local development by default to avoid exporter retries
+OTEL_ENABLED = False

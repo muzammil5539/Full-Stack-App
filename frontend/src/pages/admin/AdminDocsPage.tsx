@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminRequired from '../../admin/AdminRequired'
 import { getJson } from '../../api/http'
+import { frontendDocs, getFrontendDoc } from '../../docs/frontendDocs'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -40,10 +41,12 @@ export default function AdminDocsPage() {
 
         const data = await getJson<DocsListResponse>(`${API_BASE_URL}/docs/`)
         const next = Array.isArray(data.docs) ? data.docs : []
+        // include a small set of frontend docs (routes/components) after backend docs
+        const combined = [...next, ...frontendDocs]
 
         if (!cancelled) {
-          setDocs(next)
-          setSelected(next[0]?.name ?? '')
+          setDocs(combined)
+          setSelected(combined[0]?.name ?? '')
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load docs list.')
@@ -75,6 +78,12 @@ export default function AdminDocsPage() {
       try {
         setDocLoading(true)
         setError(null)
+        if (name.startsWith('frontend:')) {
+          const d = getFrontendDoc(name)
+          if (!cancelled) setDoc(d)
+          return
+        }
+
         const data = await getJson<DocDetailResponse>(`${API_BASE_URL}/docs/${encodeURIComponent(name)}/`)
         if (!cancelled) setDoc(data)
       } catch (e) {

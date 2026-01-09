@@ -1,4 +1,5 @@
 import { deleteJson, getJson, postJson } from './http'
+import { clearCachePrefix } from './cache'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -18,7 +19,21 @@ export async function adminGet<T>(apiPath: string, id: string | number): Promise
 }
 
 export async function adminCreate<T>(apiPath: string, payload: unknown): Promise<T> {
-  return postJson<T>(`${API_BASE_URL}${apiPath}`, payload)
+  const res = await postJson<T>(`${API_BASE_URL}${apiPath}`, payload)
+  // Invalidate related frontend caches on writes
+  try {
+    if (apiPath.includes('/products/categories') || apiPath.includes('categories')) {
+      clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
+    }
+    if (apiPath.includes('/products/brands') || apiPath.includes('brands')) {
+      clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
+    }
+    // also clear product list cache to reflect new items
+    clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
+  } catch {
+    // best-effort
+  }
+  return res
 }
 
 export async function adminOptions<T>(apiPath: string, id?: string | number): Promise<T> {
@@ -42,7 +57,13 @@ export async function adminCreateMultipart<T>(apiPath: string, form: FormData): 
   }
 
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const data = (await response.json()) as T
+  try {
+    if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
+    if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
+    clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
+  } catch {}
+  return data
 }
 
 export async function adminPatchMultipart<T>(apiPath: string, id: string | number, form: FormData): Promise<T> {
@@ -61,7 +82,13 @@ export async function adminPatchMultipart<T>(apiPath: string, id: string | numbe
   }
 
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const data = (await response.json()) as T
+  try {
+    if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
+    if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
+    clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
+  } catch {}
+  return data
 }
 
 export async function adminPatch<T>(apiPath: string, id: string | number, payload: unknown): Promise<T> {
@@ -81,9 +108,21 @@ export async function adminPatch<T>(apiPath: string, id: string | number, payloa
   }
 
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const data = (await response.json()) as T
+  try {
+    if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
+    if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
+    clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
+  } catch {}
+  return data
 }
 
 export async function adminDelete<T = unknown>(apiPath: string, id: string | number): Promise<T> {
-  return deleteJson<T>(`${API_BASE_URL}${apiPath}${id}/`)
+  const res = await deleteJson<T>(`${API_BASE_URL}${apiPath}${id}/`)
+  try {
+    if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
+    if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
+    clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
+  } catch {}
+  return res
 }

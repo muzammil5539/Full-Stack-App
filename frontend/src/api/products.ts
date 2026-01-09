@@ -1,4 +1,5 @@
 import { getJson } from './http'
+import { getCache, setCache } from './cache'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -112,17 +113,35 @@ export async function listProducts(params: ListProductsParams = {}): Promise<Pag
     page: params.page,
     page_size: params.page_size,
   })
-  return getJson<PaginatedResponse<Product>>(`${API_BASE_URL}/api/v1/products/${query}`)
+  const url = `${API_BASE_URL}/api/v1/products/${query}`
+  // short-lived cache to reduce duplicate identical requests (useful for rapid UI navigation)
+  const cached = getCache<PaginatedResponse<Product>>(url)
+  if (cached) return cached
+  const data = await getJson<PaginatedResponse<Product>>(url)
+  setCache(url, data, 2000)
+  return data
 }
 
 export async function listCategories(params: { page?: number; page_size?: number } = {}): Promise<PaginatedResponse<Category>> {
   const query = buildQuery({ page: params.page, page_size: params.page_size })
-  return getJson<PaginatedResponse<Category>>(`${API_BASE_URL}/api/v1/products/categories/${query}`)
+  const url = `${API_BASE_URL}/api/v1/products/categories/${query}`
+  const cached = getCache<PaginatedResponse<Category>>(url)
+  if (cached) return cached
+  const data = await getJson<PaginatedResponse<Category>>(url)
+  // categories are relatively static; cache for 5 minutes
+  setCache(url, data, 5 * 60 * 1000)
+  return data
 }
 
 export async function listBrands(params: { page?: number; page_size?: number } = {}): Promise<PaginatedResponse<Brand>> {
   const query = buildQuery({ page: params.page, page_size: params.page_size })
-  return getJson<PaginatedResponse<Brand>>(`${API_BASE_URL}/api/v1/products/brands/${query}`)
+  const url = `${API_BASE_URL}/api/v1/products/brands/${query}`
+  const cached = getCache<PaginatedResponse<Brand>>(url)
+  if (cached) return cached
+  const data = await getJson<PaginatedResponse<Brand>>(url)
+  // brands change rarely; cache for 5 minutes
+  setCache(url, data, 5 * 60 * 1000)
+  return data
 }
 
 export async function getProductBySlug(slug: string): Promise<Product> {

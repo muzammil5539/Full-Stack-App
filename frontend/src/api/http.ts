@@ -3,6 +3,48 @@ export type ApiError = {
   status?: number
 }
 
+async function sleep(ms: number) {
+  return new Promise((res) => setTimeout(res, ms))
+}
+
+async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempts = 3): Promise<Response> {
+  let attempt = 0
+  // simple in-memory metric for throttles seen during fetch
+  ;(fetchWithRetry as any).throttleCount = (fetchWithRetry as any).throttleCount || 0
+  while (true) {
+    try {
+      const response = await fetch(input, init)
+      // Retry on 429 (Too Many Requests) or 5xx server errors
+      if ((response.status === 429 || (response.status >= 500 && response.status < 600)) && attempt < maxAttempts - 1) {
+        const retryAfter = response.headers.get('retry-after')
+        if (response.status === 429) {
+          ;(fetchWithRetry as any).throttleCount += 1
+        }
+        let wait = 500 * Math.pow(2, attempt) // exponential backoff base
+        if (retryAfter) {
+          const parsed = parseInt(retryAfter, 10)
+          if (!Number.isNaN(parsed)) wait = parsed * 1000
+        }
+        attempt += 1
+        await sleep(wait)
+        continue
+      }
+      return response
+    } catch (e) {
+      if (attempt < maxAttempts - 1) {
+        attempt += 1
+        await sleep(500 * Math.pow(2, attempt))
+        continue
+      }
+      throw e
+    }
+  }
+}
+
+export function getThrottleMetrics() {
+  return { throttleCount: (fetchWithRetry as any).throttleCount || 0 }
+}
+
 function formatApiErrorBody(body: unknown): string | null {
   if (!body) return null
   if (typeof body === 'string') return body
@@ -72,7 +114,7 @@ function getAuthHeader(): Record<string, string> {
 }
 
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     ...init,
     headers: {
       Accept: 'application/json',
@@ -91,7 +133,7 @@ export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function postJson<T = unknown>(url: string, body: unknown, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'POST',
     ...init,
     headers: {
@@ -117,7 +159,7 @@ export async function postJson<T = unknown>(url: string, body: unknown, init?: R
 }
 
 export async function patchJson<T = unknown>(url: string, body: unknown, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'PATCH',
     ...init,
     headers: {
@@ -143,7 +185,7 @@ export async function patchJson<T = unknown>(url: string, body: unknown, init?: 
 }
 
 export async function deleteJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'DELETE',
     ...init,
     headers: {
