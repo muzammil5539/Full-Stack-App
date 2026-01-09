@@ -13,8 +13,9 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Placeholder for telemetry/logging integration
-    // console.error('ErrorBoundary caught', error, info)
+    // Placeholder for telemetry/logging integration — intentionally not noisy
+    // Mark as used to satisfy lint rules
+    void console.error?.(error, info)
   }
 
   render() {

@@ -1,6 +1,5 @@
 import { getJson, postJson, postMultipart } from './http'
 import { clearCachePrefix } from './cache'
-import { postMultipart } from './http'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 

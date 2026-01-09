@@ -3,6 +3,8 @@ export type ApiError = {
   status?: number
 }
 
+let _fetchThrottleCount = 0
+
 async function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
@@ -10,7 +12,8 @@ async function sleep(ms: number) {
 async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempts = 3): Promise<Response> {
   let attempt = 0
   // simple in-memory metric for throttles seen during fetch
-  ;(fetchWithRetry as any).throttleCount = (fetchWithRetry as any).throttleCount || 0
+  // initialize module-level throttle counter
+  _fetchThrottleCount = _fetchThrottleCount || 0
   while (true) {
     try {
       const response = await fetch(input, init)
@@ -18,7 +21,7 @@ async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempt
       if ((response.status === 429 || (response.status >= 500 && response.status < 600)) && attempt < maxAttempts - 1) {
         const retryAfter = response.headers.get('retry-after')
         if (response.status === 429) {
-          ;(fetchWithRetry as any).throttleCount += 1
+          _fetchThrottleCount += 1
         }
         let wait = 500 * Math.pow(2, attempt) // exponential backoff base
         if (retryAfter) {
@@ -42,7 +45,7 @@ async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempt
 }
 
 export function getThrottleMetrics() {
-  return { throttleCount: (fetchWithRetry as any).throttleCount || 0 }
+  return { throttleCount: _fetchThrottleCount }
 }
 
 function formatApiErrorBody(body: unknown): string | null {

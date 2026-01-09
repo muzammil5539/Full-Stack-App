@@ -26,6 +26,7 @@ export default function ProductDetailPage() {
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null)
   const didPrefillReviewFormRef = useRef(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0)
 
   useEffect(() => {
     didPrefillReviewFormRef.current = false
@@ -172,7 +173,6 @@ export default function ProductDetailPage() {
   if (!product) return <div className="text-sm text-slate-600 dark:text-slate-300">Product not found.</div>
 
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0]
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0)
   const images = product.images ?? []
   const selectedImage = images[selectedImageIndex] ?? primaryImage
   const effectivePrice =
@@ -211,11 +211,7 @@ export default function ProductDetailPage() {
           <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
             {selectedImage ? (
               // prefer image_url when available
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              <img
-                // @ts-ignore
-                src={selectedImage.image_url ?? selectedImage.image}
+              <img src={selectedImage.image_url ?? selectedImage.image}
                 alt={selectedImage.alt_text || product.name}
                 className="h-auto w-full rounded-xl object-cover"
               />
@@ -238,8 +234,6 @@ export default function ProductDetailPage() {
                   }
                   aria-pressed={selectedImageIndex === idx}
                 >
-                  {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                  {/* @ts-ignore */}
                   <img src={img.image_url ?? img.image} alt={img.alt_text || product.name} className="h-full w-full object-cover" />
                 </button>
               ))}

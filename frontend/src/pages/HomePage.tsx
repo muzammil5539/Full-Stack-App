@@ -34,9 +34,10 @@ export default function HomePage() {
         setFeatured(pRes.results)
         setCategories(cRes.results)
         setBrands(bRes.results)
-      } catch (err: any) {
+      } catch (err) {
         if (cancelled) return
-        setError(err?.message ?? 'Failed to load storefront data')
+        const message = err instanceof Error ? err.message : String(err)
+        setError(message ?? 'Failed to load storefront data')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -121,8 +122,6 @@ export default function HomePage() {
             <Link key={p.id} to={`/products/${p.slug}`} className="group overflow-hidden rounded-lg border p-3 hover:shadow-md">
               <div className="h-40 w-full overflow-hidden rounded-md bg-slate-100">
                 {productImageUrl(p) ? (
-                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore
                   <img src={productImageUrl(p)!} alt={p.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-slate-500">No image</div>

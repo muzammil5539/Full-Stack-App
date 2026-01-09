@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type KeyboardEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { addCartItem } from '../../../api/cart'
 import { listBrands, listCategories, type Brand, type Category } from '../../../api/products'
@@ -60,16 +60,18 @@ export default function ProductList() {
       try {
         const c = await listCategories({ page_size: 100 })
         setCategories(c.results)
-      } catch (e) {
+      } catch (err) {
         // ignore — filters are optional
+        void err
       }
     }
     if (brands.length === 0) {
       try {
         const b = await listBrands({ page_size: 100 })
         setBrands(b.results)
-      } catch (e) {
-        // ignore
+      } catch (err) {
+        // ignore — filters are optional
+        void err
       }
     }
   })()
@@ -95,8 +97,8 @@ export default function ProductList() {
               placeholder="Search products"
               className={inputBase}
               defaultValue={searchParams.get('search') ?? ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') updateParam('search', (e.target as HTMLInputElement).value)
+              onKeyDown={(ev: KeyboardEvent<HTMLInputElement>) => {
+                if (ev.key === 'Enter') updateParam('search', (ev.target as HTMLInputElement).value)
               }}
             />
 

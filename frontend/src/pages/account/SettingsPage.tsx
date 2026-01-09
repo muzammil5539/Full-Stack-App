@@ -7,7 +7,6 @@ import {
   listMyAddresses,
   type Address,
   createMyAddress,
-  updateMyAddress,
   deleteMyAddress,
   changePassword,
 } from '../../api/accounts'
@@ -33,8 +32,11 @@ export default function SettingsPage() {
         setLoading(true)
         const data = await listMyAddresses()
         if (!cancelled) setAddresses(data)
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? 'Failed to load addresses')
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : String(err)
+          setError(message ?? 'Failed to load addresses')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -54,9 +56,14 @@ export default function SettingsPage() {
     try {
       setLoading(true)
       setError(null)
+      const addrType = ((): 'billing' | 'shipping' => {
+        const at = String(data.address_type || '').toLowerCase()
+        return at === 'billing' ? 'billing' : 'shipping'
+      })()
+
       await createMyAddress({
         user: Number(data.user) || 0,
-        address_type: (data.address_type as any) || 'shipping',
+        address_type: addrType,
         full_name: data.full_name || '',
         phone: data.phone || '',
         address_line1: data.address_line1 || '',
@@ -70,8 +77,9 @@ export default function SettingsPage() {
       const updated = await listMyAddresses()
       setAddresses(updated)
       setNewAddrOpen(false)
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to create address')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message ?? 'Failed to create address')
     } finally {
       setLoading(false)
     }
@@ -83,8 +91,9 @@ export default function SettingsPage() {
       setLoading(true)
       await deleteMyAddress(id)
       setAddresses((prev) => prev.filter((a) => a.id !== id))
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to delete')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message ?? 'Failed to delete')
     } finally {
       setLoading(false)
     }
@@ -99,8 +108,9 @@ export default function SettingsPage() {
       setPasswordMsg('Password changed successfully')
       setOldPassword('')
       setNewPassword('')
-    } catch (e: any) {
-      setPasswordMsg(e?.message ?? 'Failed to change password')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setPasswordMsg(message ?? 'Failed to change password')
     } finally {
       setPwSubmitting(false)
     }

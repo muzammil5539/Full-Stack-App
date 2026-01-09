@@ -30,8 +30,9 @@ export async function adminCreate<T>(apiPath: string, payload: unknown): Promise
     }
     // also clear product list cache to reflect new items
     clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
-  } catch {
-    // best-effort
+  } catch (err) {
+    // best-effort: ignore cache invalidation failures
+    void err
   }
   return res
 }
@@ -62,7 +63,10 @@ export async function adminCreateMultipart<T>(apiPath: string, form: FormData): 
     if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
     if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
     clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
-  } catch {}
+  } catch (err) {
+    // best-effort: ignore cache invalidation failures
+    void err
+  }
   return data
 }
 
@@ -87,7 +91,10 @@ export async function adminPatchMultipart<T>(apiPath: string, id: string | numbe
     if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
     if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
     clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
-  } catch {}
+  } catch (err) {
+    // best-effort: ignore cache invalidation failures
+    void err
+  }
   return data
 }
 
@@ -113,7 +120,10 @@ export async function adminPatch<T>(apiPath: string, id: string | number, payloa
     if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
     if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
     clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
-  } catch {}
+  } catch (err) {
+    // best-effort: ignore cache invalidation failures
+    void err
+  }
   return data
 }
 
@@ -123,6 +133,9 @@ export async function adminDelete<T = unknown>(apiPath: string, id: string | num
     if (apiPath.includes('categories')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/categories/`)
     if (apiPath.includes('brands')) clearCachePrefix(`${API_BASE_URL}/api/v1/products/brands/`)
     clearCachePrefix(`${API_BASE_URL}/api/v1/products/`)
-  } catch {}
+  } catch (err) {
+    // best-effort: ignore cache invalidation failures
+    void err
+  }
   return res
 }

@@ -54,9 +54,9 @@ export function useProducts(query: ProductsQuery): State {
           loading: false,
           error: null,
         })
-      } catch (e: any) {
+      } catch (err) {
         if (cancelled) return
-        const message = e instanceof Error ? e.message : String(e)
+        const message = err instanceof Error ? err.message : String(err)
         setState((s) => ({ ...s, products: [], loading: false, error: message }))
       }
     }

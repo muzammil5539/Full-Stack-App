@@ -36,8 +36,6 @@ export default function NotificationsPage() {
     void refresh()
   }, [isAuthenticated])
 
-  if (!isAuthenticated) return <AuthRequired />
-
   const firstUnreadIndex = items.findIndex((n) => !n.is_read)
 
   useEffect(() => {
@@ -50,6 +48,8 @@ export default function NotificationsPage() {
       headingRef.current?.focus()
     }
   }, [isAuthenticated, loading, items, firstUnreadIndex])
+
+  if (!isAuthenticated) return <AuthRequired />
 
   return (
     <div className="grid gap-4">

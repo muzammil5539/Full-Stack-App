@@ -7,16 +7,25 @@ vi.mock('../api/payments', () => ({
   uploadPaymentProof: vi.fn(),
 }))
 
-import { uploadPaymentProof } from '../api/payments'
+import { uploadPaymentProof, type Payment } from '../api/payments'
 
 describe('UploadProofForm', () => {
   it('uploads file and calls onUploaded', async () => {
-    const mockUpdated = { id: 1, proof_status: 'pending' }
-    ;(uploadPaymentProof as unknown as any).mockResolvedValueOnce(mockUpdated)
+    const mockUpdated = {
+      id: 1,
+      order: 1,
+      payment_method: 'cash_on_delivery',
+      status: 'pending',
+      amount: '0.00',
+      payment_date: new Date().toISOString(),
+      proof_status: 'pending',
+    }
+    // use vitest typed mock helper
+    vi.mocked(uploadPaymentProof).mockResolvedValueOnce(mockUpdated)
 
     const onUploaded = vi.fn()
 
-    render(<UploadProofForm payment={{ id: 1 } as any} onUploaded={onUploaded} />)
+    render(<UploadProofForm payment={{ id: 1 } as Payment} onUploaded={onUploaded} />)
 
     const file = new File(['abc'], 'proof.png', { type: 'image/png' })
     const input = screen.getByTestId('file-input') as HTMLInputElement
