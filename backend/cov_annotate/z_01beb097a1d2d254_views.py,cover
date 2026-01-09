@@ -1,0 +1,47 @@
+> from rest_framework import viewsets, status, permissions
+> from rest_framework.decorators import action
+> from rest_framework.response import Response
+> from .models import Wishlist, WishlistItem
+> from .serializers import WishlistSerializer
+  
+  
+> class WishlistViewSet(viewsets.ModelViewSet):
+>     serializer_class = WishlistSerializer
+>     permission_classes = [permissions.IsAuthenticated]
+      
+>     def get_queryset(self):
+!         return Wishlist.objects.filter(user=self.request.user)
+      
+>     def get_object(self):
+!         wishlist, created = Wishlist.objects.get_or_create(user=self.request.user)
+!         return wishlist
+      
+>     @action(detail=False, methods=['post'])
+>     def add_item(self, request):
+>         """Add item to wishlist."""
+!         wishlist, created = Wishlist.objects.get_or_create(user=request.user)
+!         product_id = request.data.get('product')
+          
+!         wishlist_item, created = WishlistItem.objects.get_or_create(
+!             wishlist=wishlist,
+!             product_id=product_id
+!         )
+          
+!         serializer = WishlistSerializer(wishlist)
+!         return Response(serializer.data)
+      
+>     @action(detail=False, methods=['post'])
+>     def remove_item(self, request):
+>         """Remove item from wishlist."""
+!         product_id = request.data.get('product')
+!         try:
+!             wishlist_item = WishlistItem.objects.get(
+!                 wishlist__user=request.user,
+!                 product_id=product_id
+!             )
+!             wishlist_item.delete()
+!             wishlist = Wishlist.objects.get(user=request.user)
+!             serializer = WishlistSerializer(wishlist)
+!             return Response(serializer.data)
+!         except WishlistItem.DoesNotExist:
+!             return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -1,0 +1,83 @@
+> from django.test import TestCase
+> from rest_framework.test import APIClient
+  
+> from apps.accounts.models import User
+> from apps.notifications.models import Notification
+  
+  
+> class NotificationPermissionsTests(TestCase):
+>     def setUp(self):
+>         self.client = APIClient()
+>         self.user = User.objects.create_user(
+>             username='testuser',
+>             email='test@example.com',
+>             password='password123',
+>         )
+>         self.client.force_authenticate(user=self.user)
+  
+>         self.notification = Notification.objects.create(
+>             user=self.user,
+>             notification_type='order_confirmed',
+>             title='Test Notification',
+>             message='Test message',
+>         )
+  
+>     def test_notifications_are_read_only(self):
+>         """Test that users cannot create notifications via API"""
+>         response = self.client.post('/api/v1/notifications/', {
+>             'notification_type': 'order_shipped',
+>             'title': 'New Notification',
+>             'message': 'Should not work',
+>         })
+          # ReadOnlyModelViewSet does not expose create action
+>         self.assertEqual(response.status_code, 405)
+  
+>     def test_users_cannot_update_notifications(self):
+>         """Test that users cannot update notifications"""
+>         response = self.client.patch(f'/api/v1/notifications/{self.notification.id}/', {
+>             'title': 'Updated Title',
+>         })
+>         self.assertEqual(response.status_code, 405)
+  
+>     def test_users_cannot_delete_notifications(self):
+>         """Test that users cannot delete notifications"""
+>         response = self.client.delete(f'/api/v1/notifications/{self.notification.id}/')
+>         self.assertEqual(response.status_code, 405)
+  
+>     def test_users_can_read_notifications(self):
+>         """Test that users can read their notifications"""
+>         response = self.client.get('/api/v1/notifications/')
+>         self.assertEqual(response.status_code, 200)
+>         self.assertEqual(len(response.data['results']), 1)
+  
+>     def test_users_can_mark_as_read(self):
+>         """Test that users can mark notifications as read"""
+>         response = self.client.post(f'/api/v1/notifications/{self.notification.id}/mark_as_read/')
+>         self.assertEqual(response.status_code, 200)
+>         self.notification.refresh_from_db()
+>         self.assertTrue(self.notification.is_read)
+  
+>     def test_notifications_ordered_newest_first(self):
+>         """Test that notifications are ordered by creation date descending"""
+          # Create more notifications
+>         Notification.objects.create(
+>             user=self.user,
+>             notification_type='order_shipped',
+>             title='Second Notification',
+>             message='Second',
+>         )
+>         Notification.objects.create(
+>             user=self.user,
+>             notification_type='order_delivered',
+>             title='Third Notification',
+>             message='Third',
+>         )
+  
+>         response = self.client.get('/api/v1/notifications/')
+>         self.assertEqual(response.status_code, 200)
+>         results = response.data['results']
+>         self.assertEqual(len(results), 3)
+          # Should be ordered newest first
+>         self.assertEqual(results[0]['title'], 'Third Notification')
+>         self.assertEqual(results[1]['title'], 'Second Notification')
+>         self.assertEqual(results[2]['title'], 'Test Notification')

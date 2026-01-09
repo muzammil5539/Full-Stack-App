@@ -1,0 +1,180 @@
+> from decimal import Decimal
+> from django.test import TestCase
+> from rest_framework.test import APIClient
+  
+> from apps.accounts.models import User, Address
+> from apps.products.models import Category, Product
+> from apps.cart.models import Cart, CartItem
+  
+  
+> class MoneyFieldValidationTests(TestCase):
+>     def setUp(self):
+>         self.client = APIClient()
+>         self.user = User.objects.create_user(
+>             username='testuser',
+>             email='test@example.com',
+>             password='password123',
+>         )
+>         self.client.force_authenticate(user=self.user)
+  
+>         self.category = Category.objects.create(name='Test', slug='test')
+>         self.product = Product.objects.create(
+>             name='Test Product',
+>             slug='test-product',
+>             description='Test',
+>             category=self.category,
+>             sku='TEST-SKU',
+>             price='10.00',
+>             stock=100,
+>         )
+  
+>         self.address = Address.objects.create(
+>             user=self.user,
+>             address_type='shipping',
+>             full_name='Test User',
+>             phone='1234567890',
+>             address_line1='123 Test St',
+>             city='Test City',
+>             state='Test State',
+>             postal_code='12345',
+>             country='Test Country',
+>         )
+  
+>         self.cart = Cart.objects.create(user=self.user)
+>         self.cart_item = CartItem.objects.create(
+>             cart=self.cart,
+>             product=self.product,
+>             quantity=2,
+>         )
+  
+>     def test_checkout_rejects_negative_shipping_cost(self):
+>         """Test that negative shipping cost is rejected"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '-5.00',
+>             'tax': '0.00',
+>             'discount': '0.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 400)
+>         self.assertIn('error', response.data)
+  
+>     def test_checkout_rejects_negative_tax(self):
+>         """Test that negative tax is rejected"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.00',
+>             'tax': '-2.00',
+>             'discount': '0.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 400)
+>         self.assertIn('error', response.data)
+  
+>     def test_checkout_rejects_negative_discount(self):
+>         """Test that negative discount is rejected"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.00',
+>             'tax': '2.00',
+>             'discount': '-3.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 400)
+>         self.assertIn('error', response.data)
+  
+>     def test_checkout_rejects_invalid_decimal_formats(self):
+>         """Test that invalid decimal formats are rejected"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': 'abc',
+>             'tax': '2.00',
+>             'discount': '0.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 400)
+>         self.assertIn('error', response.data)
+  
+>     def test_checkout_rejects_excessive_discount(self):
+>         """Test that discount exceeding subtotal + shipping + tax is rejected"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.00',
+>             'tax': '2.00',
+>             'discount': '100.00',  # Way more than subtotal (20.00) + shipping (5.00) + tax (2.00)
+>         })
+          
+>         self.assertEqual(response.status_code, 400)
+>         self.assertIn('error', response.data)
+>         self.assertIn('discount', str(response.data).lower())
+  
+>     def test_checkout_computes_total_server_side(self):
+>         """Test that total is computed server-side and not trusted from client"""
+          # Even if client sends wrong total, server should compute correctly
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.00',
+>             'tax': '2.00',
+>             'discount': '3.00',
+>             'total': '9999.99',  # Wrong total - should be ignored
+>         })
+          
+>         self.assertEqual(response.status_code, 201)
+          
+          # Correct total: subtotal (20.00) + shipping (5.00) + tax (2.00) - discount (3.00) = 24.00
+>         self.assertEqual(Decimal(response.data['total']), Decimal('24.00'))
+  
+>     def test_checkout_accepts_valid_money_fields(self):
+>         """Test that valid money fields are accepted"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.00',
+>             'tax': '2.00',
+>             'discount': '1.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 201)
+>         self.assertEqual(Decimal(response.data['shipping_cost']), Decimal('5.00'))
+>         self.assertEqual(Decimal(response.data['tax']), Decimal('2.00'))
+>         self.assertEqual(Decimal(response.data['discount']), Decimal('1.00'))
+  
+>     def test_checkout_accepts_zero_values(self):
+>         """Test that zero values are accepted for optional money fields"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '0.00',
+>             'tax': '0.00',
+>             'discount': '0.00',
+>         })
+          
+>         self.assertEqual(response.status_code, 201)
+          # Total should be just the subtotal (20.00)
+>         self.assertEqual(Decimal(response.data['total']), Decimal('20.00'))
+  
+>     def test_checkout_rounds_total_correctly(self):
+>         """Test that total is rounded to 2 decimal places correctly"""
+>         response = self.client.post('/api/v1/orders/create_from_cart/', {
+>             'shipping_address': self.address.id,
+>             'billing_address': self.address.id,
+>             'shipping_cost': '5.555',  # Will be rounded to 5.56
+>             'tax': '2.224',  # Will be rounded to 2.22
+>             'discount': '1.111',  # Will be rounded to 1.11
+>         })
+          
+>         self.assertEqual(response.status_code, 201)
+          
+          # Check that individual fields are rounded
+>         self.assertEqual(Decimal(response.data['shipping_cost']), Decimal('5.56'))
+>         self.assertEqual(Decimal(response.data['tax']), Decimal('2.22'))
+>         self.assertEqual(Decimal(response.data['discount']), Decimal('1.11'))
+          
+          # Total: 20.00 + 5.56 + 2.22 - 1.11 = 26.67
+>         self.assertEqual(Decimal(response.data['total']), Decimal('26.67'))

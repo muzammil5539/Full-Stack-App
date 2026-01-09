@@ -1,0 +1,195 @@
+> from django.contrib.auth.models import Group
+> from rest_framework import permissions, viewsets
+> from rest_framework.authtoken.models import Token
+  
+> from apps.accounts.models import User, Address, UserProfile
+> from apps.cart.models import Cart, CartItem
+> from apps.notifications.models import Notification
+> from apps.orders.models import Order, OrderItem, OrderStatusHistory
+> from apps.payments.models import Payment
+> from apps.products.models import Brand, Category, Product, ProductImage, ProductVariant, ProductAttribute
+> from apps.reviews.models import Review, ReviewImage
+> from apps.wishlist.models import Wishlist, WishlistItem
+  
+> from .serializers import (
+>     TokenAdminSerializer,
+>     GroupAdminSerializer,
+>     UserAdminSerializer,
+>     AddressAdminSerializer,
+>     UserProfileAdminSerializer,
+>     NotificationAdminSerializer,
+>     OrderAdminSerializer,
+>     OrderItemAdminSerializer,
+>     OrderStatusHistoryAdminSerializer,
+>     PaymentAdminSerializer,
+>     BrandAdminSerializer,
+>     CategoryAdminSerializer,
+>     ProductAdminSerializer,
+>     ProductImageAdminSerializer,
+>     ProductVariantAdminSerializer,
+>     ProductAttributeAdminSerializer,
+>     ReviewAdminSerializer,
+>     ReviewImageAdminSerializer,
+>     CartAdminSerializer,
+>     CartItemAdminSerializer,
+>     WishlistAdminSerializer,
+>     WishlistItemAdminSerializer,
+> )
+  
+  
+> from utils.permissions import IsStaffOrInAdminGroupStrict
+> from utils.otel_utils import set_span_attributes, add_span_event, record_span_error
+> from utils.telemetry import admin_request_counter, admin_error_counter, admin_duration_histogram
+> import time
+  
+  
+> class AdminOnly(viewsets.ModelViewSet):
+>     permission_classes = [IsStaffOrInAdminGroupStrict]
+  
+>     def dispatch(self, request, *args, **kwargs):
+>         start = time.monotonic()
+>         view_name = self.__class__.__name__
+>         method = request.method
+>         user_id = getattr(request.user, 'id', None)
+  
+          # Add span attributes and a received event
+>         set_span_attributes({
+>             'app.operation': f'admin.{view_name}',
+>             'admin.view': view_name,
+>             'user.id': user_id,
+>             'http.method': method,
+>         })
+>         add_span_event('admin.request.received', {'view': view_name, 'method': method, 'user_id': user_id})
+  
+>         try:
+>             try:
+>                 admin_request_counter.add(1, {'view': view_name, 'method': method})
+!             except Exception:
+!                 pass
+  
+>             response = super().dispatch(request, *args, **kwargs)
+  
+              # Record duration and completion event
+>             try:
+>                 admin_duration_histogram.record((time.monotonic() - start) * 1000.0, {'view': view_name, 'method': method, 'status': response.status_code})
+!             except Exception:
+!                 pass
+>             add_span_event('admin.request.completed', {'view': view_name, 'status': getattr(response, 'status_code', None)})
+>             return response
+!         except Exception as exc:
+!             try:
+!                 admin_error_counter.add(1, {'view': view_name, 'method': method})
+!             except Exception:
+!                 pass
+!             record_span_error('admin_handler_error', 'Exception in admin handler', {'view': view_name, 'method': method}, exception=exc)
+!             raise
+  
+  
+> class TokenAdminViewSet(AdminOnly):
+>     queryset = Token.objects.all().select_related('user')
+>     serializer_class = TokenAdminSerializer
+  
+  
+> class GroupAdminViewSet(AdminOnly):
+>     queryset = Group.objects.all()
+>     serializer_class = GroupAdminSerializer
+  
+  
+> class UserAdminViewSet(AdminOnly):
+>     queryset = User.objects.all()
+>     serializer_class = UserAdminSerializer
+  
+  
+> class AddressAdminViewSet(AdminOnly):
+>     queryset = Address.objects.all().select_related('user')
+>     serializer_class = AddressAdminSerializer
+  
+  
+> class UserProfileAdminViewSet(AdminOnly):
+>     queryset = UserProfile.objects.all().select_related('user')
+>     serializer_class = UserProfileAdminSerializer
+  
+  
+> class NotificationAdminViewSet(AdminOnly):
+>     queryset = Notification.objects.all().select_related('user')
+>     serializer_class = NotificationAdminSerializer
+  
+  
+> class OrderAdminViewSet(AdminOnly):
+>     queryset = Order.objects.all().select_related('user')
+>     serializer_class = OrderAdminSerializer
+  
+  
+> class OrderItemAdminViewSet(AdminOnly):
+>     queryset = OrderItem.objects.all().select_related('order', 'product')
+>     serializer_class = OrderItemAdminSerializer
+  
+  
+> class OrderStatusHistoryAdminViewSet(AdminOnly):
+>     queryset = OrderStatusHistory.objects.all().select_related('order')
+>     serializer_class = OrderStatusHistoryAdminSerializer
+  
+  
+> class PaymentAdminViewSet(AdminOnly):
+>     queryset = Payment.objects.all().select_related('order')
+>     serializer_class = PaymentAdminSerializer
+  
+  
+> class BrandAdminViewSet(AdminOnly):
+>     queryset = Brand.objects.all()
+>     serializer_class = BrandAdminSerializer
+  
+  
+> class CategoryAdminViewSet(AdminOnly):
+>     queryset = Category.objects.all()
+>     serializer_class = CategoryAdminSerializer
+  
+  
+> class ProductAdminViewSet(AdminOnly):
+>     queryset = Product.objects.all().select_related('category', 'brand')
+>     serializer_class = ProductAdminSerializer
+  
+  
+> class ProductImageAdminViewSet(AdminOnly):
+>     queryset = ProductImage.objects.all().select_related('product')
+>     serializer_class = ProductImageAdminSerializer
+  
+  
+> class ProductVariantAdminViewSet(AdminOnly):
+>     queryset = ProductVariant.objects.all().select_related('product')
+>     serializer_class = ProductVariantAdminSerializer
+  
+  
+> class ProductAttributeAdminViewSet(AdminOnly):
+>     queryset = ProductAttribute.objects.all().select_related('product')
+>     serializer_class = ProductAttributeAdminSerializer
+  
+  
+> class ReviewAdminViewSet(AdminOnly):
+>     queryset = Review.objects.all().select_related('product', 'user')
+>     serializer_class = ReviewAdminSerializer
+  
+  
+> class ReviewImageAdminViewSet(AdminOnly):
+>     queryset = ReviewImage.objects.all().select_related('review')
+>     serializer_class = ReviewImageAdminSerializer
+  
+  
+> class CartAdminViewSet(AdminOnly):
+>     queryset = Cart.objects.all().select_related('user')
+>     serializer_class = CartAdminSerializer
+  
+  
+> class CartItemAdminViewSet(AdminOnly):
+>     queryset = CartItem.objects.all().select_related('cart', 'product')
+>     serializer_class = CartItemAdminSerializer
+  
+  
+> class WishlistAdminViewSet(AdminOnly):
+>     queryset = Wishlist.objects.all().select_related('user')
+>     serializer_class = WishlistAdminSerializer
+  
+  
+> class WishlistItemAdminViewSet(AdminOnly):
+>     queryset = WishlistItem.objects.all().select_related('wishlist', 'product')
+>     serializer_class = WishlistItemAdminSerializer

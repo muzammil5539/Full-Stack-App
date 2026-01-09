@@ -1,0 +1,61 @@
+> from __future__ import annotations
+  
+> import json
+> from django.test import SimpleTestCase
+> from unittest import mock
+  
+> from utils import logging_utils
+  
+  
+> class LoggingUtilsTests(SimpleTestCase):
+>     """Unit tests for structured logging helpers."""
+  
+>     def test_get_trace_context_generates_stable_fallback(self):
+>         ctx1 = logging_utils._get_trace_context()
+>         ctx2 = logging_utils._get_trace_context()
+  
+>         self.assertEqual(ctx1, ctx2)
+>         self.assertEqual(len(ctx1["trace_id"]), 32)
+>         self.assertEqual(len(ctx1["span_id"]), 16)
+  
+>     @mock.patch("utils.logging_utils.logger")
+>     def test_log_checkout_failure_emits_json(self, mock_logger):
+>         logging_utils.log_checkout_failure(
+>             user_id=1,
+>             error_type="insufficient_stock",
+>             error_message="No stock",
+>             context={"cart_item_id": 5},
+>         )
+  
+>         self.assertTrue(mock_logger.error.called)
+>         payload = mock_logger.error.call_args[0][0]
+>         self.assertIn("checkout_failure", payload)
+>         self.assertIn("cart_item_id", payload)
+          # Validate the JSON blob parses
+>         json_blob = payload.split(" ", 2)[-1].split("Checkout failure: ")[-1]
+>         data = json.loads(json_blob)
+>         self.assertEqual(data["event"], "checkout_failure")
+>         self.assertEqual(data["context"].get("cart_item_id"), 5)
+  
+>     @mock.patch("utils.logging_utils.logger")
+>     def test_log_payment_failure_includes_trace(self, mock_logger):
+>         logging_utils.log_payment_failure(
+>             user_id=2,
+>             order_id=10,
+>             payment_id=20,
+>             error_type="permission_denied",
+>             error_message="Forbidden",
+>             context={"attempted_order_user_id": 3},
+>         )
+  
+>         self.assertTrue(mock_logger.error.called)
+>         payload = mock_logger.error.call_args[0][0]
+>         json_blob = payload.split("Payment failure: ")[-1]
+>         data = json.loads(json_blob)
+>         self.assertEqual(data["event"], "payment_failure")
+>         self.assertEqual(data["order_id"], 10)
+>         self.assertEqual(data["payment_id"], 20)
+>         self.assertEqual(data["context"].get("attempted_order_user_id"), 3)
+>         self.assertIn("trace", data)
+>         self.assertIn("trace_id", data["trace"])
+>         self.assertIn("span_id", data["trace"])

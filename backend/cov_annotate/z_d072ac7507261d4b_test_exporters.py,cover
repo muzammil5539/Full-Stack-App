@@ -1,0 +1,204 @@
+> """
+> Tests for trace and metric exporters.
+> """
+> import os
+> from unittest import mock
+> from django.test import TestCase, override_settings
+> from opentelemetry import trace
+> from opentelemetry.sdk.trace import TracerProvider
+  
+  
+> class TraceExporterTests(TestCase):
+>     """Test trace exporter configuration."""
+      
+>     @mock.patch('utils.telemetry.OTLPSpanExporter')
+>     @mock.patch('utils.telemetry.ConsoleSpanExporter')
+>     def test_otlp_exporter_configuration(self, mock_console, mock_otlp):
+>         """Test that OTLP trace exporter is configured correctly."""
+>         from utils.telemetry import configure_tracing, create_resource
+          
+          # Force reconfiguration for this test run
+>         provider = trace.get_tracer_provider()
+>         if isinstance(provider, TracerProvider):
+>             setattr(provider, '_ecommerce_trace_configured', None)
+  
+>         resource = create_resource()
+>         configure_tracing(resource)
+          
+          # Verify OTLP exporter was created with correct endpoint
+>         mock_otlp.assert_called_once()
+>         call_kwargs = mock_otlp.call_args[1]
+>         self.assertIn('endpoint', call_kwargs)
+      
+>     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'true'})
+>     def test_console_exporter_when_enabled(self):
+>         """Test that console exporter is added when OTEL_CONSOLE_EXPORT=true."""
+>         from utils.telemetry import configure_tracing, create_resource
+          
+          # Reload module to pick up env var
+>         import importlib
+>         import utils.telemetry
+>         importlib.reload(utils.telemetry)
+  
+          # Force reconfiguration
+>         provider = trace.get_tracer_provider()
+>         if isinstance(provider, TracerProvider):
+>             setattr(provider, '_ecommerce_trace_configured', None)
+          
+>         resource = create_resource()
+>         with mock.patch('utils.telemetry.ConsoleSpanExporter') as mock_console:
+>             configure_tracing(resource)
+>             mock_console.assert_called()
+      
+>     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'false'})
+>     @mock.patch('utils.telemetry.ConsoleSpanExporter')
+>     def test_console_exporter_when_disabled(self, mock_console):
+>         """Test that console exporter is not added when OTEL_CONSOLE_EXPORT=false."""
+>         from utils.telemetry import configure_tracing, create_resource
+          
+          # Reload module
+>         import importlib
+>         import utils.telemetry
+>         importlib.reload(utils.telemetry)
+          
+>         resource = create_resource()
+>         configure_tracing(resource)
+          
+          # Console exporter should not be created
+>         mock_console.assert_not_called()
+      
+>     @mock.patch('utils.telemetry.OTLPSpanExporter')
+>     def test_otlp_exporter_handles_connection_failure(self, mock_otlp):
+>         """Test that configuration continues if OTLP exporter fails."""
+>         from utils.telemetry import configure_tracing, create_resource
+          
+          # Make OTLP exporter raise an exception
+>         mock_otlp.side_effect = Exception("Connection failed")
+          
+>         resource = create_resource()
+          
+          # Should not raise exception
+>         tracer_provider = configure_tracing(resource)
+          
+          # Provider should still be created
+>         self.assertIsNotNone(tracer_provider)
+      
+>     @mock.patch.dict(os.environ, {
+>         'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://custom:4317'
+>     })
+>     def test_custom_otlp_endpoint(self):
+>         """Test that custom OTLP endpoint is used."""
+>         from utils.telemetry import configure_tracing, create_resource
+          
+          # Reload module to pick up env var
+>         import importlib
+>         import utils.telemetry
+>         importlib.reload(utils.telemetry)
+  
+          # Force reconfiguration
+>         provider = trace.get_tracer_provider()
+>         if isinstance(provider, TracerProvider):
+>             setattr(provider, '_ecommerce_trace_configured', None)
+          
+>         resource = create_resource()
+>         with mock.patch('utils.telemetry.OTLPSpanExporter') as mock_otlp:
+>             configure_tracing(resource)
+  
+              # Verify custom endpoint was used
+>             call_kwargs = mock_otlp.call_args[1]
+>             self.assertEqual(call_kwargs['endpoint'], 'http://custom:4317')
+  
+  
+> class MetricExporterTests(TestCase):
+>     """Test metric exporter configuration."""
+      
+>     @mock.patch('utils.telemetry.OTLPMetricExporter')
+>     @mock.patch('utils.telemetry.ConsoleMetricExporter')
+>     def test_otlp_metric_exporter_configuration(self, mock_console, mock_otlp):
+>         """Test that OTLP metric exporter is configured correctly."""
+>         from utils.telemetry import configure_metrics, create_resource
+          
+>         resource = create_resource()
+>         meter_provider = configure_metrics(resource)
+          
+          # Verify OTLP metric exporter was created
+>         mock_otlp.assert_called_once()
+>         call_kwargs = mock_otlp.call_args[1]
+>         self.assertIn('endpoint', call_kwargs)
+      
+>     @mock.patch.dict(os.environ, {'OTEL_CONSOLE_EXPORT': 'true'})
+>     def test_console_metric_exporter_when_enabled(self):
+>         """Test that console metric exporter is added when enabled."""
+>         from utils.telemetry import configure_metrics, create_resource
+          
+          # Reload module
+>         import importlib
+>         import utils.telemetry
+>         importlib.reload(utils.telemetry)
+          
+>         resource = create_resource()
+>         with mock.patch('utils.telemetry.ConsoleMetricExporter') as mock_console:
+>             configure_metrics(resource)
+>             mock_console.assert_called()
+      
+>     @mock.patch('utils.telemetry.OTLPMetricExporter')
+>     def test_otlp_metric_exporter_handles_failure(self, mock_otlp):
+>         """Test that configuration continues if OTLP metric exporter fails."""
+>         from utils.telemetry import configure_metrics, create_resource
+          
+          # Make exporter raise an exception
+>         mock_otlp.side_effect = Exception("Connection failed")
+          
+>         resource = create_resource()
+          
+          # Should not raise exception
+>         meter_provider = configure_metrics(resource)
+          
+          # Provider should still be created
+>         self.assertIsNotNone(meter_provider)
+      
+>     def test_metric_export_interval(self):
+>         """Test that metric readers use appropriate export interval."""
+>         from utils.telemetry import configure_metrics, create_resource
+          
+>         resource = create_resource()
+>         meter_provider = configure_metrics(resource)
+          
+          # Verify meter provider was created successfully
+>         self.assertIsNotNone(meter_provider)
+          # Export interval is configured in PeriodicExportingMetricReader (60000ms)
+  
+  
+> class ExporterIntegrationTests(TestCase):
+>     """Test that exporters work together."""
+      
+>     def test_both_exporters_can_be_initialized(self):
+>         """Test that trace and metric exporters can both be initialized."""
+>         from utils.telemetry import initialize_telemetry
+          
+          # Should not raise exception
+>         tracer_provider, meter_provider = initialize_telemetry()
+          
+>         self.assertIsNotNone(tracer_provider)
+>         self.assertIsNotNone(meter_provider)
+      
+>     @mock.patch.dict(os.environ, {
+>         'OTEL_SERVICE_NAME': 'test-service',
+>         'OTEL_SERVICE_VERSION': '1.2.3',
+>         'OTEL_ENVIRONMENT': 'test',
+>     })
+>     def test_exporters_use_same_resource(self):
+>         """Test that both exporters use the same resource configuration."""
+>         from utils.telemetry import create_resource
+          
+          # Reload module
+>         import importlib
+>         import utils.telemetry
+>         importlib.reload(utils.telemetry)
+          
+>         resource = create_resource()
+          
+          # Verify resource attributes
+>         self.assertEqual(resource.attributes['service.name'], 'test-service')
+>         self.assertEqual(resource.attributes['service.version'], '1.2.3')
+>         self.assertEqual(resource.attributes['environment'], 'test')

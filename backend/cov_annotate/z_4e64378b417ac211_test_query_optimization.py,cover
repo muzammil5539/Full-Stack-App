@@ -1,0 +1,195 @@
+> from django.test import TestCase
+> from django.test.utils import CaptureQueriesContext
+> from django.db import connection
+> from rest_framework.test import APIClient
+  
+> from apps.accounts.models import User, Address
+> from apps.products.models import Category, Brand, Product, ProductImage, ProductVariant, ProductAttribute
+> from apps.orders.models import Order, OrderItem
+  
+  
+> class QueryOptimizationTests(TestCase):
+>     def setUp(self):
+>         self.client = APIClient()
+>         self.user = User.objects.create_user(
+>             username='testuser',
+>             email='test@example.com',
+>             password='password123',
+>         )
+>         self.client.force_authenticate(user=self.user)
+  
+          # Create test data
+>         self.category = Category.objects.create(name='Test Category', slug='test-category')
+>         self.brand = Brand.objects.create(name='Test Brand', slug='test-brand')
+  
+          # Create multiple products with related data
+>         self.products = []
+>         for i in range(3):
+>             product = Product.objects.create(
+>                 name=f'Product {i}',
+>                 slug=f'product-{i}',
+>                 description=f'Description {i}',
+>                 category=self.category,
+>                 brand=self.brand,
+>                 sku=f'SKU-{i}',
+>                 price='10.00',
+>                 stock=100,
+>             )
+>             self.products.append(product)
+  
+              # Add images
+>             for j in range(2):
+>                 ProductImage.objects.create(
+>                     product=product,
+>                     alt_text=f'Image {j}',
+>                     order=j,
+>                 )
+  
+              # Add variants
+>             ProductVariant.objects.create(
+>                 product=product,
+>                 name='Size',
+>                 value='Medium',
+>                 sku=f'SKU-{i}-M',
+>                 stock=50,
+>             )
+  
+              # Add attributes
+>             ProductAttribute.objects.create(
+>                 product=product,
+>                 name='Material',
+>                 value='Cotton',
+>             )
+  
+          # Create addresses
+>         self.shipping_address = Address.objects.create(
+>             user=self.user,
+>             address_type='shipping',
+>             full_name='Test User',
+>             phone='1234567890',
+>             address_line1='123 Test St',
+>             city='Test City',
+>             state='Test State',
+>             postal_code='12345',
+>             country='Test Country',
+>         )
+  
+>         self.billing_address = Address.objects.create(
+>             user=self.user,
+>             address_type='billing',
+>             full_name='Test User',
+>             phone='1234567890',
+>             address_line1='456 Billing St',
+>             city='Billing City',
+>             state='Billing State',
+>             postal_code='54321',
+>             country='Test Country',
+>         )
+  
+          # Create orders with items
+>         self.orders = []
+>         for i in range(3):
+>             order = Order.objects.create(
+>                 user=self.user,
+>                 shipping_address=self.shipping_address,
+>                 billing_address=self.billing_address,
+>                 subtotal='10.00',
+>                 shipping_cost='5.00',
+>                 tax='1.00',
+>                 total='16.00',
+>                 status='pending',
+>             )
+>             self.orders.append(order)
+  
+              # Add 2 items per order
+>             for product in self.products[:2]:
+>                 OrderItem.objects.create(
+>                     order=order,
+>                     product=product,
+>                     quantity=1,
+>                     price='10.00',
+>                 )
+  
+>     def test_product_list_query_count(self):
+>         """Test that product list doesn't have N+1 queries"""
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get('/api/v1/products/')
+>             self.assertEqual(response.status_code, 200)
+  
+          # Should use select_related for category/brand and prefetch_related for images/variants/attributes
+          # Expected queries:
+          # 1. Product query with select_related
+          # 2. Prefetch images
+          # 3. Prefetch variants
+          # 4. Prefetch attributes
+          # 5. COUNT query for pagination
+>         query_count = len(context.captured_queries)
+          # Should be around 5-6 queries regardless of number of products
+>         self.assertLess(query_count, 10, f"Too many queries: {query_count}")
+  
+>     def test_product_detail_query_count(self):
+>         """Test that product detail doesn't have N+1 queries"""
+>         product = self.products[0]
+  
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get(f'/api/v1/products/{product.slug}/')
+>             self.assertEqual(response.status_code, 200)
+  
+          # Should use select_related and prefetch_related
+>         query_count = len(context.captured_queries)
+          # Should be around 4-5 queries
+>         self.assertLess(query_count, 8, f"Too many queries: {query_count}")
+  
+>     def test_order_list_query_count(self):
+>         """Test that order list doesn't have N+1 queries"""
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get('/api/v1/orders/')
+>             self.assertEqual(response.status_code, 200)
+  
+          # Should use select_related for addresses and prefetch_related for items/products
+>         query_count = len(context.captured_queries)
+          # With comprehensive prefetching of nested relations, we expect more queries but should still be bounded
+          # Should not scale with number of orders (no N+1)
+>         self.assertLess(query_count, 25, f"Too many queries: {query_count}")
+  
+>     def test_order_detail_query_count(self):
+>         """Test that order detail doesn't have N+1 queries"""
+>         order = self.orders[0]
+  
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get(f'/api/v1/orders/{order.id}/')
+>             self.assertEqual(response.status_code, 200)
+  
+          # Should be optimized
+>         query_count = len(context.captured_queries)
+>         self.assertLess(query_count, 12, f"Too many queries: {query_count}")
+  
+>     def test_product_queryset_uses_select_related(self):
+>         """Test that ProductViewSet uses select_related for category and brand"""
+>         product = self.products[0]
+          
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get(f'/api/v1/products/{product.slug}/')
+>             self.assertEqual(response.status_code, 200)
+              
+              # Access category and brand - should not trigger additional queries
+>             self.assertEqual(response.data['category_name'], 'Test Category')
+>             self.assertEqual(response.data['brand_name'], 'Test Brand')
+  
+          # All queries should have been captured in the initial fetch
+>         query_count = len(context.captured_queries)
+>         self.assertLess(query_count, 8)
+  
+>     def test_order_queryset_uses_prefetch_related(self):
+>         """Test that OrderViewSet prefetches items and related data"""
+>         order = self.orders[0]
+  
+>         with CaptureQueriesContext(connection) as context:
+>             response = self.client.get(f'/api/v1/orders/{order.id}/')
+>             self.assertEqual(response.status_code, 200)
+              
+              # Access nested data - should not trigger additional queries within this context
+>             self.assertGreater(len(response.data['items']), 0)
+  
+>         query_count = len(context.captured_queries)
+>         self.assertLess(query_count, 12)

@@ -1,0 +1,80 @@
+> from django.urls import path
+> from rest_framework.routers import DefaultRouter
+  
+> from .views import (
+>     TokenAdminViewSet,
+>     GroupAdminViewSet,
+>     UserAdminViewSet,
+>     AddressAdminViewSet,
+>     UserProfileAdminViewSet,
+>     NotificationAdminViewSet,
+>     OrderAdminViewSet,
+>     OrderItemAdminViewSet,
+>     OrderStatusHistoryAdminViewSet,
+>     PaymentAdminViewSet,
+>     BrandAdminViewSet,
+>     CategoryAdminViewSet,
+>     ProductAdminViewSet,
+>     ProductImageAdminViewSet,
+>     ProductVariantAdminViewSet,
+>     ProductAttributeAdminViewSet,
+>     ReviewAdminViewSet,
+>     ReviewImageAdminViewSet,
+>     CartAdminViewSet,
+>     CartItemAdminViewSet,
+>     WishlistAdminViewSet,
+>     WishlistItemAdminViewSet,
+> )
+  
+> from .docs_views import AdminDocsDetailView, AdminDocsListView
+  
+> router = DefaultRouter()
+  
+  # Auth token & auth
+> router.register(r'authtoken/tokens', TokenAdminViewSet, basename='admin-token')
+> router.register(r'auth/groups', GroupAdminViewSet, basename='admin-group')
+  
+  # Accounts
+> router.register(r'accounts/users', UserAdminViewSet, basename='admin-user')
+> router.register(r'accounts/addresses', AddressAdminViewSet, basename='admin-address')
+> router.register(r'accounts/userprofiles', UserProfileAdminViewSet, basename='admin-userprofile')
+  
+  # Notifications
+> router.register(r'notifications/notifications', NotificationAdminViewSet, basename='admin-notification')
+  
+  # Orders
+> router.register(r'orders/orders', OrderAdminViewSet, basename='admin-order')
+> router.register(r'orders/orderitems', OrderItemAdminViewSet, basename='admin-orderitem')
+> router.register(r'orders/orderstatushistory', OrderStatusHistoryAdminViewSet, basename='admin-orderstatushistory')
+  
+  # Payments
+> router.register(r'payments/payments', PaymentAdminViewSet, basename='admin-payment')
+  
+  # Products
+> router.register(r'products/brands', BrandAdminViewSet, basename='admin-brand')
+> router.register(r'products/categories', CategoryAdminViewSet, basename='admin-category')
+> router.register(r'products/products', ProductAdminViewSet, basename='admin-product')
+> router.register(r'products/productimages', ProductImageAdminViewSet, basename='admin-productimage')
+> router.register(r'products/productvariants', ProductVariantAdminViewSet, basename='admin-productvariant')
+> router.register(r'products/productattributes', ProductAttributeAdminViewSet, basename='admin-productattribute')
+  
+  # Reviews
+> router.register(r'reviews/reviews', ReviewAdminViewSet, basename='admin-review')
+> router.register(r'reviews/reviewimages', ReviewImageAdminViewSet, basename='admin-reviewimage')
+  
+  # Cart
+> router.register(r'cart/carts', CartAdminViewSet, basename='admin-cart')
+> router.register(r'cart/cartitems', CartItemAdminViewSet, basename='admin-cartitem')
+  
+  # Wishlist
+> router.register(r'wishlist/wishlists', WishlistAdminViewSet, basename='admin-wishlist')
+> router.register(r'wishlist/wishlistitems', WishlistItemAdminViewSet, basename='admin-wishlistitem')
+  
+> urlpatterns = router.urls
+  
+> docs_urlpatterns = [
+>     path('docs/', AdminDocsListView.as_view(), name='admin-docs-list'),
+>     path('docs/<str:name>/', AdminDocsDetailView.as_view(), name='admin-docs-detail'),
+> ]
+  
+> urlpatterns = docs_urlpatterns + urlpatterns

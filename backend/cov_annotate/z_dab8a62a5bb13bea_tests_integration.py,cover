@@ -1,0 +1,82 @@
+> import os
+> import shutil
+> import tempfile
+  
+> from django.test import TestCase, override_settings
+> from django.contrib.auth import get_user_model
+> from rest_framework.test import APIClient
+> from django.core.files.uploadedfile import SimpleUploadedFile
+  
+> from apps.accounts.models import Address
+> from apps.orders.models import Order
+> from .models import Payment
+> from decimal import Decimal
+  
+  
+> class PaymentProofIntegrationTests(TestCase):
+>     def setUp(self):
+>         User = get_user_model()
+>         self.user = User.objects.create_user(email='int@example.com', username='int', password='pass')
+>         self.client = APIClient()
+>         self.client.force_authenticate(user=self.user)
+  
+>         self.shipping = Address.objects.create(
+>             user=self.user,
+>             address_type='shipping',
+>             full_name='Int',
+>             phone='123',
+>             address_line1='L1',
+>             city='C',
+>             state='S',
+>             postal_code='11111',
+>             country='Country',
+>             is_default=True,
+>         )
+>         self.billing = Address.objects.create(
+>             user=self.user,
+>             address_type='billing',
+>             full_name='Int',
+>             phone='123',
+>             address_line1='L1',
+>             city='C',
+>             state='S',
+>             postal_code='11111',
+>             country='Country',
+>             is_default=True,
+>         )
+  
+>         self.order = Order.objects.create(
+>             user=self.user,
+>             shipping_address=self.shipping,
+>             billing_address=self.billing,
+>             subtotal=Decimal('10.00'),
+>             shipping_cost=Decimal('0.00'),
+>             tax=Decimal('0.00'),
+>             discount=Decimal('0.00'),
+>             total=Decimal('10.00'),
+>         )
+  
+>         self.payment = Payment.objects.create(
+>             order=self.order,
+>             payment_method='cash_on_delivery',
+>             transaction_id='INT1',
+>             amount=self.order.total,
+>             status='pending',
+>         )
+  
+>     def test_file_saved_to_media_root(self):
+>         tempdir = tempfile.mkdtemp()
+>         try:
+>             with override_settings(MEDIA_ROOT=tempdir):
+>                 f = SimpleUploadedFile('proof.pdf', b'PDFDATA', content_type='application/pdf')
+>                 res = self.client.post(f'/api/v1/payments/{self.payment.id}/upload_proof/', {'proof_file': f}, format='multipart')
+>                 self.assertEqual(res.status_code, 200)
+>                 self.payment.refresh_from_db()
+>                 self.assertTrue(bool(self.payment.proof_file))
+>                 path = self.payment.proof_file.path
+>                 self.assertTrue(os.path.exists(path))
+>                 with open(path, 'rb') as fh:
+>                     data = fh.read()
+>                 self.assertEqual(data, b'PDFDATA')
+>         finally:
+>             shutil.rmtree(tempdir, ignore_errors=True)

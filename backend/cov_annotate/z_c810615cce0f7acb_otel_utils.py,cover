@@ -1,0 +1,77 @@
+> """Small OpenTelemetry helpers used by request handlers.
+  
+> All helpers are best-effort and should never raise.
+> """
+  
+> from __future__ import annotations
+  
+> from typing import Any, Mapping, Optional
+  
+> from opentelemetry import trace
+> from opentelemetry.trace.status import Status, StatusCode
+  
+  
+> def get_current_recording_span():
+>     span = trace.get_current_span()
+>     if span is None:
+!         return None
+>     try:
+>         if not span.is_recording():
+>             return None
+!     except Exception:
+!         return None
+>     return span
+  
+  
+> def set_span_attributes(attributes: Mapping[str, Any]) -> None:
+>     span = get_current_recording_span()
+>     if span is None:
+>         return
+  
+>     for key, value in (attributes or {}).items():
+>         if value is None:
+!             continue
+>         try:
+>             span.set_attribute(key, value)
+!         except Exception:
+              # Never break request handling because of telemetry.
+!             continue
+  
+  
+> def add_span_event(name: str, attributes: Optional[Mapping[str, Any]] = None) -> None:
+>     span = get_current_recording_span()
+>     if span is None:
+>         return
+>     try:
+>         span.add_event(name, attributes=dict(attributes or {}))
+!     except Exception:
+!         return
+  
+  
+> def record_span_error(
+>     error_type: str,
+>     message: str,
+>     attributes: Optional[Mapping[str, Any]] = None,
+>     exception: Optional[BaseException] = None,
+> ) -> None:
+>     span = get_current_recording_span()
+>     if span is None:
+>         return
+  
+!     try:
+!         if exception is not None:
+!             try:
+!                 span.record_exception(exception)
+!             except Exception:
+!                 pass
+  
+!         try:
+!             span.set_status(Status(StatusCode.ERROR, description=message))
+!         except Exception:
+!             pass
+  
+!         payload = {"error.type": error_type, "error.message": message}
+!         payload.update(dict(attributes or {}))
+!         span.add_event("error", attributes=payload)
+!     except Exception:
+!         return
