@@ -152,6 +152,8 @@ backend/
 ## API Endpoints
 
 ### Accounts
+- `POST /api/v1/accounts/token/` - Obtain auth token (DRF TokenAuthentication)
+- `POST /api/v1/accounts/register/` - Register and obtain token
 - `GET/POST /api/v1/accounts/users/` - User list/create
 - `GET/PUT/PATCH/DELETE /api/v1/accounts/users/{id}/` - User detail
 - `GET/POST /api/v1/accounts/addresses/` - Address list/create

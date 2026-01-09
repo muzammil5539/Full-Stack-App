@@ -21,11 +21,11 @@ Authorization: Token <your-token-here>
 ### Obtaining a Token
 
 ```http
-POST /api/v1/auth/login/
+POST /api/v1/accounts/token/
 Content-Type: application/json
 
 {
-    "email": "user@example.com",
+    "username": "user@example.com",
     "password": "password123"
 }
 ```
@@ -33,12 +33,7 @@ Content-Type: application/json
 Response:
 ```json
 {
-    "token": "your-auth-token",
-    "user": {
-        "id": 1,
-        "email": "user@example.com",
-        "username": "user"
-    }
+    "token": "your-auth-token"
 }
 ```
 
@@ -250,7 +245,13 @@ Notes:
         "missing_item_ids": [123, 456]
     }
     ```
-- If `item_ids` is not a list of integers, the API returns `400` with `{ "error": "Invalid item_ids" }`.
+- If `item_ids` is not a list of integers, the API returns `400` with:
+    ```json
+    {
+        "error": "Invalid item_ids",
+        "detail": "item_ids must be a list of integers"
+    }
+    ```
 - If the cart (or selected items) is empty, the API returns `400` with `{ "error": "Cart is empty" }`.
 
 Pricing validation:

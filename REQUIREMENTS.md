@@ -133,7 +133,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 - [ ] Add metrics for admin productivity (actions per session, time between operations, most-used models).
 
 **Documentation**
-- [ ] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
+- [x] Keep backend docs aligned with actual endpoints (`/api/v1/accounts/token/` vs older examples; add `item_ids` to `create_from_cart`).
 - [ ] Define webhook plan (API docs say “Coming soon”).
 - [x] Add docs: local OpenTelemetry Collector + Jaeger/Zipkin docker-compose usage and backend env vars.
 - [x] Backend: serve documentation from `/docs/` (admin-only; reads markdown from `backend/docs/`).
@@ -213,7 +213,7 @@ Use this short list for day-to-day progress. The full checklist continues below.
 ### NFRs (Non‑Functional Requirements)
 
 **UX Consistency**
-- [ ] Remove/replace stale “Starter page” copy in pages that are already functional (e.g., login uses real token endpoint).
+- [x] Remove/replace stale “Starter page” copy in pages that are already functional (e.g., login uses real token endpoint).
 - [ ] Standardize empty/loading/error states across pages.
 - [ ] Make authenticated navigation consistent across roles (admin vs non-admin) and across pages.
 

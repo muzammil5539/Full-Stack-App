@@ -17,7 +17,7 @@ export default function LoginPage() {
     <div className="mx-auto grid w-full max-w-md gap-4">
       <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        Starter page: connect to backend auth endpoint (JWT/session) and store tokens.
+        Sign in to continue.
       </p>
 
       {error && <ErrorMessage message={error} />}

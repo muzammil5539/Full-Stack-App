@@ -30,7 +30,7 @@ Django practice/
 │   ├── unittests/       # Unit tests
 │   ├── manage.py
 │   └── requiremetns.txt
-├── frontend/            # React frontend (to be implemented)
+├── frontend/            # React frontend (Vite)
 │   └── Readme.md
 └── Readme.md           # This file
 ```
@@ -84,14 +84,8 @@ Base URL: `http://localhost:8000/api/v1/`
 ✅ Admin dashboard
 ✅ RESTful API
 
-### Frontend Features (Coming Soon)
-- Modern React UI
-- Responsive design
-- Product browsing
-- Shopping cart
-- Checkout process
-- User dashboard
-- Order tracking
+### Frontend
+The frontend is implemented under `frontend/` using React + Vite.
 
 ## Tech Stack
 
