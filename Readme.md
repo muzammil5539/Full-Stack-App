@@ -73,7 +73,7 @@ Base URL: `http://localhost:8000/api/v1/`
 ## Features
 
 ### Backend Features
-✅ User authentication with JWT
+✅ User authentication with DRF Token Authentication
 ✅ Product management with categories
 ✅ Shopping cart with sessions
 ✅ Order processing
@@ -89,8 +89,8 @@ The frontend is implemented under `frontend/` using React + Vite.
 
 ## Tech Stack
 
-### Backend
-- Django 5.0+
+-### Backend
+- Django (see backend/requiremetns.txt for pinned version)
 - Django REST Framework
 - PostgreSQL / SQLite
 - Pillow (Image processing)
@@ -99,7 +99,7 @@ The frontend is implemented under `frontend/` using React + Vite.
 ### Frontend
 - React.js
 - Redux/Context API
-- Axios
+- Fetch wrapper (built-in `fetch` used by frontend `src/api/http.ts`)
 - React Router
 - Material-UI / Tailwind CSS
 

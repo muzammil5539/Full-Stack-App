@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuthToken } from '../auth/useAuthToken'
 import { useAdminGate } from '../admin/useAdminGate'
+import ErrorBoundary from '../shared/ui/ErrorBoundary'
 
 const buttonBase =
   'inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800'
@@ -66,7 +67,9 @@ export default function RootLayout() {
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
 

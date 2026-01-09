@@ -116,6 +116,32 @@ export async function postJson<T = unknown>(url: string, body: unknown, init?: R
   return (await response.json()) as T
 }
 
+export async function patchJson<T = unknown>(url: string, body: unknown, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    method: 'PATCH',
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+      ...(init?.headers ?? {}),
+    },
+    body: JSON.stringify(body ?? {}),
+  })
+
+  if (!response.ok) {
+    const { message, details } = await readErrorMessage(response)
+    const err = Object.assign(new Error(message), { status: response.status, details })
+    throw err
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
 export async function deleteJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     method: 'DELETE',

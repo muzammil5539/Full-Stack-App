@@ -25,6 +25,7 @@ export default function CartPage() {
   const { isAuthenticated } = useAuthToken()
   const [cart, setCart] = useState<Cart | null>(null)
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([])
+  const [selectionStale, setSelectionStale] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingByItemId, setPendingByItemId] = useState<Record<number, boolean>>({})
@@ -43,6 +44,8 @@ export default function CartPage() {
         if (prev.length === 0) return nextIds
         const nextSet = new Set(nextIds)
         const kept = prev.filter((id) => nextSet.has(id))
+        // if some previously-selected ids are missing, mark selection stale
+        if (kept.length < prev.length) setSelectionStale(true)
         return kept.length ? kept : nextIds
       })
 
@@ -99,6 +102,14 @@ export default function CartPage() {
     if (!selectedItemIds.length) return '/checkout'
     return `/checkout?items=${encodeURIComponent(selectedItemIds.join(','))}`
   }, [selectedItemIds])
+
+  const selectedSubtotal = useMemo(() => {
+    if (!cart) return '0.00'
+    const sum = cart.items
+      .filter((i) => selectedItemIds.includes(i.id))
+      .reduce((acc, it) => acc + Number(it.subtotal ?? 0), 0)
+    return sum.toFixed(2)
+  }, [cart, selectedItemIds])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -157,6 +168,22 @@ export default function CartPage() {
                 Select all
               </label>
               <div className="text-slate-600 dark:text-slate-300">Selected: {selectedItemIds.length}</div>
+              <div className="text-sm font-semibold">Selected subtotal: ${selectedSubtotal}</div>
+              {selectionStale ? (
+                <div className="ml-2 flex items-center gap-2 text-xs text-rose-600">
+                  <span>Selection changed — some items were removed or updated.</span>
+                  <button
+                    onClick={() => {
+                      // reset selection to current items
+                      setSelectedItemIds(cart.items.map((i) => i.id))
+                      setSelectionStale(false)
+                    }}
+                    className={[buttonBase, 'h-7 px-2 text-xs'].join(' ')}
+                  >
+                    Re-select all
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

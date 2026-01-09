@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { listNotifications, markAllNotificationsRead, type Notification } from '../api/notifications'
 import { useAuthToken } from '../auth/useAuthToken'
 import AuthRequired from '../shared/ui/AuthRequired'
@@ -13,6 +13,9 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [markingAll, setMarkingAll] = useState(false)
+  const firstUnreadRef = useRef<HTMLDivElement | null>(null)
+  const headingRef = useRef<HTMLHeadingElement | null>(null)
 
   async function refresh() {
     try {
@@ -35,18 +38,41 @@ export default function NotificationsPage() {
 
   if (!isAuthenticated) return <AuthRequired />
 
+  const firstUnreadIndex = items.findIndex((n) => !n.is_read)
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (loading) return
+    // focus the first unread notification for keyboard/screen reader users
+    if (firstUnreadIndex !== -1) {
+      firstUnreadRef.current?.focus()
+    } else {
+      headingRef.current?.focus()
+    }
+  }, [isAuthenticated, loading, items, firstUnreadIndex])
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight">
+          Notifications
+        </h1>
         <button
+          aria-label="Mark all as read"
           onClick={async () => {
-            await markAllNotificationsRead()
-            await refresh()
+            try {
+              setMarkingAll(true)
+              await markAllNotificationsRead()
+              await refresh()
+              headingRef.current?.focus()
+            } finally {
+              setMarkingAll(false)
+            }
           }}
+          disabled={markingAll}
           className={[buttonBase, 'h-9'].join(' ')}
         >
-          Mark all as read
+          {markingAll ? 'Marking…' : 'Mark all as read'}
         </button>
       </div>
 
@@ -54,24 +80,30 @@ export default function NotificationsPage() {
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && (
-        <div className="grid gap-3">
+        <div className="grid gap-3" role="region" aria-live="polite" aria-label="Notifications list">
           {items.length === 0 ? (
             <p className="text-sm text-slate-600 dark:text-slate-300">No notifications.</p>
           ) : (
-            items.map((n) => (
-              <div
-                key={n.id}
-                className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <strong className="text-sm font-semibold">{n.title}</strong>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {n.is_read ? 'Read' : 'Unread'}
-                  </span>
+            <div role="list" className="grid gap-3">
+              {items.map((n, idx) => (
+                <div
+                  key={n.id}
+                  ref={idx === firstUnreadIndex ? firstUnreadRef : undefined}
+                  tabIndex={idx === firstUnreadIndex ? -1 : undefined}
+                  role="listitem"
+                  aria-label={`${n.notification_type} notification: ${n.title}`}
+                  className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-sm font-semibold">{n.title}</strong>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {n.is_read ? 'Read' : 'Unread'}
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-700 dark:text-slate-200">{n.message}</div>
                 </div>
-                <div className="text-sm text-slate-700 dark:text-slate-200">{n.message}</div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}

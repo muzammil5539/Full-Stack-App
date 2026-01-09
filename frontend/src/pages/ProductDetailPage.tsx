@@ -172,6 +172,9 @@ export default function ProductDetailPage() {
   if (!product) return <div className="text-sm text-slate-600 dark:text-slate-300">Product not found.</div>
 
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0]
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0)
+  const images = product.images ?? []
+  const selectedImage = images[selectedImageIndex] ?? primaryImage
   const effectivePrice =
     selectedVariant && Number(selectedVariant.price_adjustment) !== 0
       ? (Number(product.price) + Number(selectedVariant.price_adjustment)).toFixed(2)
@@ -204,16 +207,42 @@ export default function ProductDetailPage() {
 
       <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 dark:border-slate-800 dark:bg-slate-950">
         {/* Image */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
-          {primaryImage ? (
-            <img
-              src={primaryImage.image}
-              alt={primaryImage.alt_text || product.name}
-              className="h-auto w-full rounded-xl object-cover"
-            />
-          ) : (
-            <div className="flex h-72 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-              No image
+        <div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+            {selectedImage ? (
+              // prefer image_url when available
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              <img
+                // @ts-ignore
+                src={selectedImage.image_url ?? selectedImage.image}
+                alt={selectedImage.alt_text || product.name}
+                className="h-auto w-full rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex h-72 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+                No image
+              </div>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="mt-3 flex gap-2 overflow-auto">
+              {images.map((img, idx) => (
+                <button
+                  key={img.id}
+                  onClick={() => setSelectedImageIndex(idx)}
+                  className={
+                    'h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border ' +
+                    (selectedImageIndex === idx ? 'ring-2 ring-sky-500' : 'border-slate-200')
+                  }
+                  aria-pressed={selectedImageIndex === idx}
+                >
+                  {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                  {/* @ts-ignore */}
+                  <img src={img.image_url ?? img.image} alt={img.alt_text || product.name} className="h-full w-full object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -254,17 +283,21 @@ export default function ProductDetailPage() {
                 >
                   Default
                 </button>
-                {product.variants
-                  .filter((v) => v.is_active)
-                  .map((v) => (
+                {product.variants.map((v) => {
+                  const disabled = !v.is_active || v.stock <= 0
+                  return (
                     <button
                       key={v.id}
-                      onClick={() => setSelectedVariant(v)}
+                      onClick={() => !disabled && setSelectedVariant(v)}
+                      disabled={disabled}
+                      aria-disabled={disabled}
+                      title={disabled ? 'Unavailable' : undefined}
                       className={[
                         'rounded-md border px-3 py-2 text-sm font-medium',
                         selectedVariant?.id === v.id
                           ? 'border-sky-600 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-950 dark:text-sky-300'
                           : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+                        disabled ? 'opacity-60 cursor-not-allowed' : '',
                       ].join(' ')}
                     >
                       {v.value}
@@ -274,8 +307,10 @@ export default function ProductDetailPage() {
                           {v.price_adjustment})
                         </span>
                       )}
+                      {disabled && <span className="ml-2 text-xs text-rose-600">Unavailable</span>}
                     </button>
-                  ))}
+                  )
+                })}
               </div>
             </div>
           )}

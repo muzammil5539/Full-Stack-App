@@ -1,4 +1,4 @@
-import { getJson, postJson } from './http'
+import { getJson, postJson, patchJson, deleteJson } from './http'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
@@ -69,4 +69,16 @@ export async function createMyAddress(input: CreateAddressInput): Promise<Addres
     address_line2: input.address_line2 ?? '',
     is_default: input.is_default ?? false,
   })
+}
+
+export async function updateMyAddress(id: number, input: Partial<CreateAddressInput>): Promise<Address> {
+  return patchJson<Address>(`${API_BASE_URL}/api/v1/accounts/addresses/${id}/`, input)
+}
+
+export async function deleteMyAddress(id: number): Promise<void> {
+  await deleteJson(`${API_BASE_URL}/api/v1/accounts/addresses/${id}/`)
+}
+
+export async function changePassword(old_password: string, new_password: string): Promise<void> {
+  await postJson(`${API_BASE_URL}/api/v1/accounts/users/change_password/`, { old_password, new_password })
 }
