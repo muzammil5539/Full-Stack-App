@@ -43,6 +43,7 @@ class TelemetryTrace(TimeStampedModel):
     user_agent = models.TextField(blank=True)
     
     class Meta:
+        app_label = 'telemetry'
         db_table = 'telemetry_traces'
         verbose_name = 'Telemetry Trace'
         verbose_name_plural = 'Telemetry Traces'
@@ -107,6 +108,7 @@ class TelemetrySpan(TimeStampedModel):
     events = models.JSONField(default=list, blank=True, help_text="Span events")
     
     class Meta:
+        app_label = 'telemetry'
         db_table = 'telemetry_spans'
         verbose_name = 'Telemetry Span'
         verbose_name_plural = 'Telemetry Spans'
