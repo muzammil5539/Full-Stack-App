@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import viewsets
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.metrics import MeterProvider
+
+from .models import TelemetryTrace, TelemetrySpan
+from .serializers import TelemetryTraceSerializer, TelemetryTraceListSerializer, TelemetrySpanSerializer
+from utils.permissions import IsStaffOrInAdminGroupStrict
 
 
 @api_view(["GET"])
@@ -32,3 +37,36 @@ def telemetry_health(request):
             },
         }
     )
+
+
+class TelemetryTraceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Admin-only read access to telemetry traces.
+    Provides list and detail views of captured traces with user context.
+    """
+    queryset = TelemetryTrace.objects.all().select_related('user').prefetch_related('spans')
+    permission_classes = [IsStaffOrInAdminGroupStrict]
+    filterset_fields = ['status', 'environment', 'username', 'user']
+    search_fields = ['trace_id', 'username', 'email', 'root_span_name', 'http_url']
+    ordering_fields = ['created_at', 'duration_ms', 'status']
+    ordering = ['-created_at']
+    
+    def get_serializer_class(self):
+        """Use lighter serializer for list view."""
+        if self.action == 'list':
+            return TelemetryTraceListSerializer
+        return TelemetryTraceSerializer
+
+
+class TelemetrySpanViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Admin-only read access to telemetry spans.
+    Provides list and detail views of captured spans.
+    """
+    queryset = TelemetrySpan.objects.all().select_related('trace')
+    serializer_class = TelemetrySpanSerializer
+    permission_classes = [IsStaffOrInAdminGroupStrict]
+    filterset_fields = ['trace', 'status', 'kind', 'name']
+    search_fields = ['span_id', 'name', 'status_message']
+    ordering_fields = ['start_time', 'duration_ms', 'status']
+    ordering = ['start_time']
