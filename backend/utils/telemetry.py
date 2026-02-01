@@ -15,12 +15,21 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, ConsoleMetricExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
+
+# Try to import OTLP exporters, but make them optional due to dependency conflicts
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+except ImportError:
+    OTLPSpanExporter = None
+
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+except ImportError:
+    OTLPMetricExporter = None
 
 
 _INITIALIZED = False
@@ -137,11 +146,14 @@ def configure_tracing(resource: Resource) -> TracerProvider:
     desired = (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_CONSOLE_EXPORT)
     if configured != desired:
         # Add OTLP exporter
-        try:
-            otlp_exporter = OTLPSpanExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
-            tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-        except Exception as e:
-            print(f"Warning: Failed to configure OTLP trace exporter: {e}")
+        if OTLPSpanExporter is not None:
+            try:
+                otlp_exporter = OTLPSpanExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
+                tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+            except Exception as e:
+                print(f"Warning: Failed to configure OTLP trace exporter: {e}")
+        else:
+            print("Warning: OTLP trace exporter not available (due to protobuf version conflicts)")
 
         # Add console exporter for development/debugging
         if OTEL_CONSOLE_EXPORT:
@@ -166,15 +178,18 @@ def configure_metrics(resource: Resource) -> MeterProvider:
 
     # Add OTLP metric exporter
     if 'otlp' in exporters or not exporters:
-        try:
-            otlp_metric_exporter = OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
-            otlp_reader = PeriodicExportingMetricReader(
-                otlp_metric_exporter,
-                export_interval_millis=OTEL_METRICS_EXPORT_INTERVAL_MS,
-            )
-            readers.append(otlp_reader)
-        except Exception as e:
-            print(f"Warning: Failed to configure OTLP metric exporter: {e}")
+        if OTLPMetricExporter is not None:
+            try:
+                otlp_metric_exporter = OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT)
+                otlp_reader = PeriodicExportingMetricReader(
+                    otlp_metric_exporter,
+                    export_interval_millis=OTEL_METRICS_EXPORT_INTERVAL_MS,
+                )
+                readers.append(otlp_reader)
+            except Exception as e:
+                print(f"Warning: Failed to configure OTLP metric exporter: {e}")
+        else:
+            print("Warning: OTLP metric exporter not available (due to protobuf version conflicts)")
 
     # Add console exporter for development/debugging
     if OTEL_CONSOLE_EXPORT or 'console' in exporters:

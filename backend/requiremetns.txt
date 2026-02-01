@@ -4,6 +4,7 @@ djangorestframework>=3.12,<4.0
 django-cors-headers>=3.7,<4.0
 django-filter>=23.0
 Pillow>=10.0
+requests>=2.25
 
 # Database that store unstructured data as well as structured data
 psycopg2-binary>=2.8,<3.0
@@ -19,13 +20,17 @@ redis>=3.5,<4.0
 pytest>=6.0,<7.0
 pytest-django>=4.0,<5.0
 
+# OAuth and Authentication
+dj-rest-auth>=5.0,<6.0
+django-allauth>=0.57,<1.0
+PyJWT>=2.8,<3.0
+google-auth-oauthlib>=1.0,<2.0
+
 # OpenTelemetry packages
-opentelemetry-api>=1.20.0
-opentelemetry-sdk>=1.20.0
-opentelemetry-instrumentation-django>=0.41b0
-opentelemetry-instrumentation-psycopg2>=0.41b0
-opentelemetry-instrumentation-requests>=0.41b0
-opentelemetry-instrumentation-redis>=0.41b0
-opentelemetry-exporter-otlp>=1.20.0
-opentelemetry-exporter-jaeger>=1.20.0
+opentelemetry-api==1.20.0
+opentelemetry-sdk==1.20.0
+opentelemetry-instrumentation-django==0.41b0
+opentelemetry-instrumentation-psycopg2==0.41b0
+opentelemetry-instrumentation-requests==0.41b0
+opentelemetry-instrumentation-redis==0.41b0
 
