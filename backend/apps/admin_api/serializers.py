@@ -13,6 +13,7 @@ from apps.payments.models import Payment
 from apps.products.models import Brand, Category, Product, ProductImage, ProductVariant, ProductAttribute
 from apps.reviews.models import Review, ReviewImage
 from apps.wishlist.models import Wishlist, WishlistItem
+from apps.telemetry.models import TelemetryTrace, TelemetrySpan
 
 
 def _sku_prefix(value: str, fallback: str) -> str:
@@ -281,4 +282,21 @@ class WishlistAdminSerializer(serializers.ModelSerializer):
 class WishlistItemAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = WishlistItem
+        fields = '__all__'
+
+
+class TelemetryTraceAdminSerializer(serializers.ModelSerializer):
+    span_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = TelemetryTrace
+        fields = '__all__'
+    
+    def get_span_count(self, obj):
+        return obj.spans.count()
+
+
+class TelemetrySpanAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TelemetrySpan
         fields = '__all__'

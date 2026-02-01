@@ -10,6 +10,7 @@ from apps.payments.models import Payment
 from apps.products.models import Brand, Category, Product, ProductImage, ProductVariant, ProductAttribute
 from apps.reviews.models import Review, ReviewImage
 from apps.wishlist.models import Wishlist, WishlistItem
+from apps.telemetry.models import TelemetryTrace, TelemetrySpan
 
 from .serializers import (
     TokenAdminSerializer,
@@ -34,6 +35,8 @@ from .serializers import (
     CartItemAdminSerializer,
     WishlistAdminSerializer,
     WishlistItemAdminSerializer,
+    TelemetryTraceAdminSerializer,
+    TelemetrySpanAdminSerializer,
 )
 
 
@@ -193,3 +196,13 @@ class WishlistAdminViewSet(AdminOnly):
 class WishlistItemAdminViewSet(AdminOnly):
     queryset = WishlistItem.objects.all().select_related('wishlist', 'product')
     serializer_class = WishlistItemAdminSerializer
+
+
+class TelemetryTraceAdminViewSet(AdminOnly):
+    queryset = TelemetryTrace.objects.all().select_related('user').prefetch_related('spans')
+    serializer_class = TelemetryTraceAdminSerializer
+
+
+class TelemetrySpanAdminViewSet(AdminOnly):
+    queryset = TelemetrySpan.objects.all().select_related('trace')
+    serializer_class = TelemetrySpanAdminSerializer

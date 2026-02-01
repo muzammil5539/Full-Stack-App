@@ -24,6 +24,8 @@ from .views import (
     CartItemAdminViewSet,
     WishlistAdminViewSet,
     WishlistItemAdminViewSet,
+    TelemetryTraceAdminViewSet,
+    TelemetrySpanAdminViewSet,
 )
 
 from .docs_views import AdminDocsDetailView, AdminDocsListView
@@ -69,6 +71,10 @@ router.register(r'cart/cartitems', CartItemAdminViewSet, basename='admin-cartite
 # Wishlist
 router.register(r'wishlist/wishlists', WishlistAdminViewSet, basename='admin-wishlist')
 router.register(r'wishlist/wishlistitems', WishlistItemAdminViewSet, basename='admin-wishlistitem')
+
+# Telemetry
+router.register(r'telemetry/traces', TelemetryTraceAdminViewSet, basename='admin-telemetry-trace')
+router.register(r'telemetry/spans', TelemetrySpanAdminViewSet, basename='admin-telemetry-span')
 
 urlpatterns = router.urls
 

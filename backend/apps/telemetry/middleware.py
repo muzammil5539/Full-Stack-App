@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from opentelemetry import baggage
 from opentelemetry.context import attach, detach, get_current
+from utils.telemetry_capture import capture_current_trace
 
 
 class TelemetryBaggageMiddleware:
@@ -11,6 +12,8 @@ class TelemetryBaggageMiddleware:
     Adds:
     - user.id (if authenticated)
     - session.key (if available)
+    
+    Also captures trace information in database for admin portal viewing.
     """
 
     def __init__(self, get_response):
@@ -33,7 +36,13 @@ class TelemetryBaggageMiddleware:
                 values["session.key"] = str(session_key)
 
         if not values:
-            return self.get_response(request)
+            response = self.get_response(request)
+            # Still try to capture trace even without baggage
+            try:
+                capture_current_trace(request)
+            except Exception:
+                pass
+            return response
 
         ctx = get_current()
         for k, v in values.items():
@@ -41,6 +50,13 @@ class TelemetryBaggageMiddleware:
 
         token = attach(ctx)
         try:
-            return self.get_response(request)
+            response = self.get_response(request)
+            # Capture trace information in database
+            try:
+                capture_current_trace(request)
+            except Exception:
+                # Never break request processing
+                pass
+            return response
         finally:
             detach(token)
