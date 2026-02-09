@@ -66,7 +66,28 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], throttle_classes=[CheckoutRateThrottle])
     def create_from_cart(self, request):
-        """Create order from cart with idempotency support."""
+        """
+        Create an Order from the current user's cart, enforcing idempotency, stock, and pricing validation.
+        
+        This action:
+        - Accepts an optional Idempotency-Key (header or request data) and returns an existing order if one was already created with that key for the same user.
+        - Validates requested cart item IDs (optional), shipping and billing addresses ownership, per-item stock and quantities, and monetary fields (shipping_cost, tax, discount).
+        - Decrements inventory inside a transaction, computes subtotal and server-side total with proper rounding, ensures discount and total are valid, creates the Order, creates all OrderItem rows in bulk (including per-item subtotal), creates an initial OrderStatusHistory entry, and removes the ordered items from the cart.
+        - Records telemetry/metrics for success and failure paths.
+        - Produces appropriate HTTP responses for success (201 Created with serialized order; 200 OK when returning an idempotent existing order) and for validation or missing-cart errors (400 or 404).
+        
+        Parameters:
+            request: DRF request object. Expected input (in headers or request.data) may include:
+                - Idempotency-Key (header or `idempotency_key`)
+                - item_ids (optional list of cart item IDs to include)
+                - shipping_address (required integer id)
+                - billing_address (required integer id)
+                - shipping_cost, tax, discount (optional monetary values)
+                - notes (optional)
+        
+        Returns:
+            DRF Response containing the serialized Order on success (201) or the existing order for an idempotent request (200); on failure returns an error response with status 400 or 404 and details about the validation error.
+        """
         start_time = time.monotonic()
         base_attrs = {
             "endpoint": "orders.create_from_cart",
