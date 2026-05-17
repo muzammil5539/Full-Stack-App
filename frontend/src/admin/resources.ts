@@ -33,6 +33,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
 
   { app: 'wishlist', model: 'wishlistitem', title: 'Wishlist Items', apiPath: '/api/v1/admin/wishlist/wishlistitems/', displayFieldCandidates: ['id'] },
   { app: 'wishlist', model: 'wishlist', title: 'Wishlists', apiPath: '/api/v1/admin/wishlist/wishlists/', displayFieldCandidates: ['id'] },
+  
+  { app: 'telemetry', model: 'telemetrytrace', title: 'Telemetry Traces', apiPath: '/api/v1/admin/telemetry/traces/', displayFieldCandidates: ['trace_id', 'username', 'root_span_name'] },
+  { app: 'telemetry', model: 'telemetryspan', title: 'Telemetry Spans', apiPath: '/api/v1/admin/telemetry/spans/', displayFieldCandidates: ['span_id', 'name'] },
 ]
 
 export function findAdminResource(app: string, model: string): AdminResource | undefined {
