@@ -22,7 +22,8 @@ class Cart(TimeStampedModel):
     
     @property
     def total_items(self):
-        return sum(item.quantity for item in self.items.all())
+        from django.db.models import Sum
+        return self.items.aggregate(total=Sum('quantity'))['total'] or 0
 
 
 class CartItem(TimeStampedModel):
