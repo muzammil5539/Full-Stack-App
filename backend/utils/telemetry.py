@@ -155,8 +155,8 @@ def configure_tracing(resource: Resource) -> TracerProvider:
         else:
             print("Warning: OTLP trace exporter not available (due to protobuf version conflicts)")
 
-        # Add console exporter for development/debugging
-        if OTEL_CONSOLE_EXPORT:
+        # Add console exporter for development/debugging (disabled in production)
+        if OTEL_CONSOLE_EXPORT and OTEL_ENVIRONMENT != 'production':
             console_exporter = ConsoleSpanExporter()
             tracer_provider.add_span_processor(BatchSpanProcessor(console_exporter))
 
@@ -191,8 +191,8 @@ def configure_metrics(resource: Resource) -> MeterProvider:
         else:
             print("Warning: OTLP metric exporter not available (due to protobuf version conflicts)")
 
-    # Add console exporter for development/debugging
-    if OTEL_CONSOLE_EXPORT or 'console' in exporters:
+    # Add console exporter for development/debugging (disabled in production)
+    if (OTEL_CONSOLE_EXPORT or 'console' in exporters) and OTEL_ENVIRONMENT != 'production':
         try:
             console_metric_exporter = ConsoleMetricExporter()
             console_reader = PeriodicExportingMetricReader(
