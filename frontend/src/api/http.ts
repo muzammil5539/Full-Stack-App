@@ -9,6 +9,15 @@ async function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
 
+/**
+ * Get authorization header from localStorage if token exists
+ */
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token')
+  if (!token) return {}
+  return { 'Authorization': `Token ${token}` }
+}
+
 async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempts = 3): Promise<Response> {
   let attempt = 0
   // simple in-memory metric for throttles seen during fetch
@@ -16,7 +25,16 @@ async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempt
   _fetchThrottleCount = _fetchThrottleCount || 0
   while (true) {
     try {
-      const response = await fetch(input, init)
+      // Merge auth headers with provided headers
+      const headers = {
+        ...getAuthHeaders(),
+        ...init?.headers,
+      }
+
+      const response = await fetch(input, {
+        ...init,
+        headers,
+      })
       // Retry on 429 (Too Many Requests) or 5xx server errors
       if ((response.status === 429 || (response.status >= 500 && response.status < 600)) && attempt < maxAttempts - 1) {
         const retryAfter = response.headers.get('retry-after')
@@ -32,6 +50,15 @@ async function fetchWithRetry(input: RequestInfo, init?: RequestInit, maxAttempt
         await sleep(wait)
         continue
       }
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+        window.location.href = '/account/login'
+        throw new Error('Unauthorized: Please log in again')
+      }
+
       return response
     } catch (e) {
       if (attempt < maxAttempts - 1) {

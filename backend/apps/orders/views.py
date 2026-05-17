@@ -403,14 +403,18 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
                 
                 # Create order items from cart
-                for cart_item in items_qs:
-                    OrderItem.objects.create(
+                order_items = [
+                    OrderItem(
                         order=order,
                         product=cart_item.product,
                         variant=cart_item.variant,
                         quantity=cart_item.quantity,
-                        price=cart_item.price
+                        price=cart_item.price,
+                        subtotal=cart_item.price * cart_item.quantity
                     )
+                    for cart_item in items_qs
+                ]
+                OrderItem.objects.bulk_create(order_items)
                 
                 # Create status history
                 OrderStatusHistory.objects.create(

@@ -7,11 +7,48 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from .models import User, Address, UserProfile, EmailVerificationToken
-from .serializers import UserSerializer, AddressSerializer, UserProfileSerializer
+from .serializers import UserSerializer, AddressSerializer, UserProfileSerializer, GoogleAuthSerializer
 
 
 class AuthRateThrottle(AnonRateThrottle):
     scope = 'auth'
+
+
+class GoogleAuthView(APIView):
+    """
+    Google OAuth authentication endpoint.
+    
+    Accepts Google ID token from client and creates/authenticates user.
+    Returns authentication token and user data.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [AuthRateThrottle]
+
+    def post(self, request):
+        """
+        Authenticate user with Google ID token.
+        
+        Expected request body:
+        {
+            "id_token": "<google_id_token>"
+        }
+        
+        Returns:
+        {
+            "key": "<auth_token>",
+            "user": {<user_data>}
+        }
+        """
+        serializer = GoogleAuthSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            response_data = serializer.save()
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        return Response(
+            {'error': 'Authentication failed', 'details': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class RegisterView(APIView):

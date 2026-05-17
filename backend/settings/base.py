@@ -5,12 +5,22 @@ Base settings shared across all environments.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-change-this-in-production'
+
+# Google OAuth Configuration
+GOOGLE_OAUTH_CLIENT_ID = os.getenv(
+    'GOOGLE_OAUTH_CLIENT_ID',
+    'your_google_client_id_here'
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -26,6 +36,15 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'django_filters',
+    
+    # OAuth and authentication
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     
     # Local apps
     'apps.accounts',
@@ -51,6 +70,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'apps.telemetry.middleware.TelemetryBaggageMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -143,6 +163,30 @@ REST_FRAMEWORK = {
         'payment': '10/hour',
     },
 }
+
+# dj-rest-auth settings
+REST_AUTH = {
+    'USER_DETAILS_SERIALIZER': 'apps.accounts.serializers.UserSerializer',
+    'TOKEN_MODEL': 'rest_framework.authtoken.models.Token',
+}
+
+# django-allauth settings
+SITE_ID = 1
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'VERIFIED_EMAIL': True,
+    },
+}
+
+SOCIALACCOUNT_AUTO_SIGNUP = True
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
